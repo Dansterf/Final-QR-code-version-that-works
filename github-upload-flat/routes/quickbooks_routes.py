@@ -127,7 +127,7 @@ def quickbooks_callback():
                     realm_id=realm_id,
                     expires_in=tokens.get("expires_in", 3600)
                 )
-                print(f"Token saved with ID: {saved_token.id if saved_token else 'None'}")
+                print(f"Token saved successfully for realm: {realm_id}")
             except Exception as save_error:
                 print(f"CRITICAL ERROR saving token: {str(save_error)}")
                 return f"<html><body><h1>Error saving token</h1><p>{str(save_error)}</p></body></html>", 500
