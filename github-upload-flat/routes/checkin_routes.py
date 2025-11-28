@@ -123,9 +123,9 @@ def find_or_create_qb_customer(customer, access_token, realm_id):
             }
         }
         
-        if customer.phoneNumber:
+        if customer.phone:
             customer_data["PrimaryPhone"] = {
-                "FreeFormNumber": customer.phoneNumber
+                "FreeFormNumber": customer.phone
             }
         
         create_response = requests.post(
@@ -298,4 +298,3 @@ def get_checkins():
             "price": session_type.price if session_type else 0.0
         })
     return jsonify(result), 200
-
