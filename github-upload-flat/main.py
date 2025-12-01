@@ -1,3 +1,4 @@
+from auto_migrate import auto_migrate
 
 import os
 
@@ -98,35 +99,10 @@ def not_found(e):
 
 with app.app_context():
     create_tables_and_initial_data()
-# Temporary migration route - REMOVE AFTER RUNNING ONCE
-@app.route('/run-migration')
-def run_migration():
-    try:
-        from sqlalchemy import text
-        
-        # Use the existing db connection from your app
-        with db.engine.connect() as connection:
-            # Add customer_type column
-            connection.execute(text(
-                "ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(20) DEFAULT 'in-person'"
-            ))
-            
-            # Add is_manual column
-            connection.execute(text(
-                "ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS is_manual BOOLEAN DEFAULT FALSE"
-            ))
-            
-            # Update existing customers
-            connection.execute(text(
-                "UPDATE customers SET customer_type = 'in-person' WHERE customer_type IS NULL"
-            ))
-            
-            connection.commit()
-        
-        return "✅ Migration completed successfully!", 200
-    except Exception as e:
-        return f"❌ Error: {str(e)}", 500
+
 if __name__ == "__main__":
+        # Run auto-migration on startup
+    auto_migrate()
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
 
