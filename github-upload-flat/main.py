@@ -63,6 +63,7 @@ from routes.email_routes_v2 import email_bp_v2
 from routes.email_routes_simple import email_simple_bp
 from routes.email_routes_attachment import email_attachment_bp
 from routes.email_routes_improved import email_improved_bp
+from routes.admin_routes import admin_bp
 
 app.register_blueprint(customer_bp, url_prefix="/api/customers")
 app.register_blueprint(session_bp, url_prefix="/api/sessions")
@@ -73,6 +74,7 @@ app.register_blueprint(email_bp_v2, url_prefix="/api/email")
 app.register_blueprint(email_simple_bp, url_prefix="/api/email")
 app.register_blueprint(email_attachment_bp, url_prefix="/api/email")
 app.register_blueprint(email_improved_bp, url_prefix="/api/email")
+app.register_blueprint(admin_bp, url_prefix="/api/admin")
 
 def create_tables_and_initial_data():
     db.create_all()

@@ -1,3 +1,4 @@
+
 from flask import Blueprint, request, jsonify
 from db import db
 from models.models import CheckIn, Customer, SessionType
@@ -425,3 +426,5 @@ def get_checkins():
             "price": session_type.price if session_type else 0.0
         })
     return jsonify(result), 200
+
+
