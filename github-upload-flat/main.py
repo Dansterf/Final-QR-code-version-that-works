@@ -1,3 +1,4 @@
+from routes.session_routes import session_bp
 from auto_migrate import auto_migrate
 
 import os
@@ -66,6 +67,7 @@ from routes.email_routes_attachment import email_attachment_bp
 from routes.email_routes_improved import email_improved_bp
 from routes.admin_routes import admin_bp
 
+app.register_blueprint(session_bp)
 app.register_blueprint(customer_bp, url_prefix="/api/customers")
 app.register_blueprint(session_bp, url_prefix="/api/sessions")
 app.register_blueprint(checkin_bp, url_prefix="/api/checkins")
