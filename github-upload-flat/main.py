@@ -98,7 +98,39 @@ def not_found(e):
 
 with app.app_context():
     create_tables_and_initial_data()
-
+# Temporary migration route - REMOVE AFTER RUNNING ONCE
+@app.route('/run-migration')
+def run_migration():
+    try:
+        import psycopg2
+        from urllib.parse import urlparse
+        
+        result = urlparse(os.environ.get('DATABASE_URL'))
+        conn = psycopg2.connect(
+            database=result.path[1:],
+            user=result.username,
+            password=result.password,
+            host=result.hostname,
+            port=result.port
+        )
+        cursor = conn.cursor()
+        
+        # Add customer_type column
+        cursor.execute("ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(20) DEFAULT 'in-person'")
+        
+        # Add is_manual column
+        cursor.execute("ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS is_manual BOOLEAN DEFAULT FALSE")
+        
+        # Update existing customers
+        cursor.execute("UPDATE customers SET customer_type = 'in-person' WHERE customer_type IS NULL")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return "✅ Migration completed successfully!", 200
+    except Exception as e:
+        return f"❌ Error: {str(e)}", 500
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
