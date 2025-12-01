@@ -1,161 +1,169 @@
 from flask import Blueprint, request, jsonify
-from db import db
 from models.models import SessionType
+from db import db
 
-admin_bp = Blueprint("admin_bp", __name__)
+admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
-# Predefined services to import
-PREDEFINED_SERVICES = [
-    {"name": "Absence Motivée", "duration_minutes": 60, "price": 21.00},
-    {"name": "Absence non motivée", "duration_minutes": 60, "price": 21.00},
-    {"name": "Cours annulé", "duration_minutes": 60, "price": 0.00},
-    {"name": "Cours de Batterie", "duration_minutes": 60, "price": 27.00},
-    {"name": "Cours de chant", "duration_minutes": 60, "price": 27.00},
-    {"name": "Cours de Guitare", "duration_minutes": 60, "price": 27.00},
-    {"name": "Cours de piano", "duration_minutes": 60, "price": 27.00},
-    {"name": "Groupe Français", "duration_minutes": 60, "price": 21.00},
-    {"name": "Groupe Mathématiques", "duration_minutes": 60, "price": 21.00},
-    {"name": "Groupe mathématiques et Français", "duration_minutes": 60, "price": 21.00},
-    {"name": "Heures", "duration_minutes": 60, "price": 0.00},
-    {"name": "Individuel (En ligne)", "duration_minutes": 60, "price": 40.00},
-    {"name": "Individuel (présentiel)", "duration_minutes": 60, "price": 40.00}
-]
-
-@admin_bp.route("/services", methods=["GET"])
+# Get all services
+@admin_bp.route('/services', methods=['GET'])
 def get_all_services():
-    """Get all services"""
-    services = SessionType.query.order_by(SessionType.name).all()
-    return jsonify([{
-        "id": s.id,
-        "name": s.name,
-        "duration": s.duration,
-        "price": float(s.price)
-    } for s in services]), 200
+    """Get all available services/session types"""
+    try:
+        services = SessionType.query.all()
+        return jsonify([{
+            "id": s.id,
+            "name": s.name,
+            "price": s.price,
+            "duration": s.duration,
+            "created_at": s.created_at.isoformat() if s.created_at else None
+        } for s in services]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-@admin_bp.route("/services", methods=["POST"])
-def create_service():
-    """Create a new service"""
-    data = request.get_json()
-    
-    name = data.get("name")
-    duration_minutes = data.get("duration_minutes", 60)
-    price = data.get("price", 0.0)
-    
-    if not name:
-        return jsonify({"error": "Service name is required"}), 400
-    
-    # Check if service already exists
-    existing = SessionType.query.filter_by(name=name).first()
-    if existing:
-        return jsonify({"error": "Service with this name already exists"}), 400
-    
-    new_service = SessionType(
-        name=name,
-        duration_minutes=duration_minutes,
-        price=price
-    )
-    
-    db.session.add(new_service)
-    db.session.commit()
-    
-    print(f"[ADMIN] ✓ Service created: {name} - ${price}")
-    
-    return jsonify({
-        "id": new_service.id,
-        "name": new_service.name,
-        "duration_minutes": new_service.duration_minutes,
-        "price": float(new_service.price)
-    }), 201
-
-@admin_bp.route("/services/<int:service_id>", methods=["PUT"])
-def update_service(service_id):
-    """Update an existing service"""
-    service = SessionType.query.get(service_id)
-    if not service:
-        return jsonify({"error": "Service not found"}), 404
-    
-    data = request.get_json()
-    
-    if "name" in data:
-        # Check if new name conflicts with another service
-        existing = SessionType.query.filter_by(name=data["name"]).first()
-        if existing and existing.id != service_id:
-            return jsonify({"error": "Service with this name already exists"}), 400
-        service.name = data["name"]
-    
-    if "duration_minutes" in data:
-        service.duration_minutes = data["duration_minutes"]
-    
-    if "price" in data:
-        service.price = data["price"]
-    
-    db.session.commit()
-    
-    print(f"[ADMIN] ✓ Service updated: {service.name} - ${service.price}")
-    
-    return jsonify({
-        "id": service.id,
-        "name": service.name,
-        "duration_minutes": service.duration_minutes,
-        "price": float(service.price)
-    }), 200
-
-@admin_bp.route("/services/<int:service_id>", methods=["DELETE"])
-def delete_service(service_id):
-    """Delete a service"""
-    service = SessionType.query.get(service_id)
-    if not service:
-        return jsonify({"error": "Service not found"}), 404
-    
-    service_name = service.name
-    db.session.delete(service)
-    db.session.commit()
-    
-    print(f"[ADMIN] ✓ Service deleted: {service_name}")
-    
-    return jsonify({"message": "Service deleted successfully"}), 200
-
-@admin_bp.route("/services/import", methods=["POST"])
-def import_predefined_services():
-    """Import all predefined services"""
-    imported_count = 0
-    updated_count = 0
-    skipped_count = 0
-    
-    for service_data in PREDEFINED_SERVICES:
-        service_name = service_data["name"]
+# Add a new service
+@admin_bp.route('/services', methods=['POST'])
+def add_service():
+    """Add a new service/session type"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('name') or not data.get('price'):
+            return jsonify({"error": "Name and price are required"}), 400
         
         # Check if service already exists
-        existing_service = SessionType.query.filter_by(name=service_name).first()
-        
+        existing_service = SessionType.query.filter_by(name=data['name']).first()
         if existing_service:
-            # Update existing service
-            existing_service.duration_minutes = service_data["duration_minutes"]
-            existing_service.price = service_data["price"]
-            updated_count += 1
-            print(f"[ADMIN] ✓ Updated: {service_name} - ${service_data['price']:.2f}")
-        else:
+            return jsonify({"error": "Service with this name already exists"}), 400
+        
+        # Create new service
+        new_service = SessionType(
+            name=data['name'],
+            price=float(data['price']),
+            duration=int(data.get('duration', 60))
+        )
+        
+        db.session.add(new_service)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Service added successfully",
+            "service": {
+                "id": new_service.id,
+                "name": new_service.name,
+                "price": new_service.price,
+                "duration": new_service.duration
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# Update a service
+@admin_bp.route('/services/<int:service_id>', methods=['PUT'])
+def update_service(service_id):
+    """Update an existing service"""
+    try:
+        service = SessionType.query.get(service_id)
+        if not service:
+            return jsonify({"error": "Service not found"}), 404
+        
+        data = request.get_json()
+        
+        # Update fields if provided
+        if 'name' in data:
+            service.name = data['name']
+        if 'price' in data:
+            service.price = float(data['price'])
+        if 'duration' in data:
+            service.duration = int(data['duration'])
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Service updated successfully",
+            "service": {
+                "id": service.id,
+                "name": service.name,
+                "price": service.price,
+                "duration": service.duration
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# Delete a service
+@admin_bp.route('/services/<int:service_id>', methods=['DELETE'])
+def delete_service(service_id):
+    """Delete a service"""
+    try:
+        service = SessionType.query.get(service_id)
+        if not service:
+            return jsonify({"error": "Service not found"}), 404
+        
+        db.session.delete(service)
+        db.session.commit()
+        
+        return jsonify({"message": "Service deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# Import predefined services
+@admin_bp.route('/services/import', methods=['POST'])
+def import_predefined_services():
+    """Import a predefined list of services"""
+    try:
+        # Predefined services list
+        predefined_services = [
+            {"name": "Individuel (En ligne)", "duration": 60, "price": 40.00},
+            {"name": "Individuel (En personne)", "duration": 60, "price": 40.00},
+            {"name": "Petit groupe (2-3) (En ligne)", "duration": 60, "price": 30.00},
+            {"name": "Petit groupe (2-3) (En personne)", "duration": 60, "price": 30.00},
+            {"name": "Groupe (4-5) (En ligne)", "duration": 60, "price": 21.00},
+            {"name": "Groupe (4-5) (En personne)", "duration": 60, "price": 21.00},
+            {"name": "Grand groupe (6+) (En ligne)", "duration": 60, "price": 21.00},
+            {"name": "Grand groupe (6+) (En personne)", "duration": 60, "price": 21.00},
+            {"name": "Piano", "duration": 30, "price": 27.00},
+            {"name": "Guitare", "duration": 30, "price": 27.00},
+            {"name": "Chant", "duration": 30, "price": 27.00},
+            {"name": "Batterie", "duration": 30, "price": 27.00},
+            {"name": "Heures", "duration": 60, "price": 0.00}
+        ]
+        
+        imported_count = 0
+        skipped_count = 0
+        
+        for service_data in predefined_services:
+            # Check if service already exists
+            existing_service = SessionType.query.filter_by(name=service_data["name"]).first()
+            if existing_service:
+                skipped_count += 1
+                continue
+            
             # Create new service
-           new_service = SessionType(
-    name=service["name"],
-    duration_minutes=service["duration"],
-    price=service["price"]
-)
+            new_service = SessionType(
+                name=service_data["name"],
+                duration=service_data["duration"],
+                price=service_data["price"]
+            )
             db.session.add(new_service)
             imported_count += 1
-            print(f"[ADMIN] ✓ Imported: {service_name} - ${service_data['price']:.2f}")
-    
-    db.session.commit()
-    
-    total_services = SessionType.query.count()
-    
-    print(f"[ADMIN] Import complete: {imported_count} new, {updated_count} updated, {total_services} total")
-    
-    return jsonify({
-        "success": True,
-        "imported": imported_count,
-        "updated": updated_count,
-        "skipped": skipped_count,
-        "total": total_services
-    }), 200
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": f"Import completed: {imported_count} services imported, {skipped_count} skipped (already exist)",
+            "imported": imported_count,
+            "skipped": skipped_count
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
