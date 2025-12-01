@@ -69,7 +69,6 @@ from routes.admin_routes import admin_bp
 
 app.register_blueprint(session_bp)
 app.register_blueprint(customer_bp, url_prefix="/api/customers")
-app.register_blueprint(session_bp, url_prefix="/api/sessions")
 app.register_blueprint(checkin_bp, url_prefix="/api/checkins")
 app.register_blueprint(quickbooks_bp, url_prefix="/api/quickbooks")
 app.register_blueprint(email_bp, url_prefix="/api/email")
