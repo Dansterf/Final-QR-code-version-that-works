@@ -102,31 +102,26 @@ with app.app_context():
 @app.route('/run-migration')
 def run_migration():
     try:
-        import psycopg2
-        from urllib.parse import urlparse
+        from sqlalchemy import text
         
-        result = urlparse(os.environ.get('DATABASE_URL'))
-        conn = psycopg2.connect(
-            database=result.path[1:],
-            user=result.username,
-            password=result.password,
-            host=result.hostname,
-            port=result.port
-        )
-        cursor = conn.cursor()
-        
-        # Add customer_type column
-        cursor.execute("ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(20) DEFAULT 'in-person'")
-        
-        # Add is_manual column
-        cursor.execute("ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS is_manual BOOLEAN DEFAULT FALSE")
-        
-        # Update existing customers
-        cursor.execute("UPDATE customers SET customer_type = 'in-person' WHERE customer_type IS NULL")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
+        # Use the existing db connection from your app
+        with db.engine.connect() as connection:
+            # Add customer_type column
+            connection.execute(text(
+                "ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_type VARCHAR(20) DEFAULT 'in-person'"
+            ))
+            
+            # Add is_manual column
+            connection.execute(text(
+                "ALTER TABLE check_ins ADD COLUMN IF NOT EXISTS is_manual BOOLEAN DEFAULT FALSE"
+            ))
+            
+            # Update existing customers
+            connection.execute(text(
+                "UPDATE customers SET customer_type = 'in-person' WHERE customer_type IS NULL"
+            ))
+            
+            connection.commit()
         
         return "✅ Migration completed successfully!", 200
     except Exception as e:
