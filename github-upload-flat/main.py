@@ -83,9 +83,10 @@ def create_tables_and_initial_data():
     # Add initial session types if they don't exist
     if not SessionType.query.first():
         initial_session_types = [
-            SessionType(name="French Tutoring", duration_minutes=60, price=50.00),
-            SessionType(name="Math Tutoring", duration_minutes=60, price=50.00),
-            SessionType(name="Music Session", duration_minutes=45, price=40.00),
+            SessionType(name="French Tutoring", duration=60, price=50.00),
+SessionType(name="Math Tutoring", duration=60, price=45.00),
+SessionType(name="Piano Lesson", duration=30, price=35.00),
+
         ]
         db.session.add_all(initial_session_types)
         db.session.commit()
