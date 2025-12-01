@@ -28,7 +28,7 @@ def get_all_services():
     return jsonify([{
         "id": s.id,
         "name": s.name,
-        "duration_minutes": s.duration_minutes,
+        "duration": s.duration,
         "price": float(s.price)
     } for s in services]), 200
 
@@ -136,11 +136,11 @@ def import_predefined_services():
             print(f"[ADMIN] ✓ Updated: {service_name} - ${service_data['price']:.2f}")
         else:
             # Create new service
-            new_service = SessionType(
-                name=service_name,
-                duration_minutes=service_data["duration_minutes"],
-                price=service_data["price"]
-            )
+           new_service = SessionType(
+    name=service["name"],
+    duration_minutes=service["duration"],
+    price=service["price"]
+)
             db.session.add(new_service)
             imported_count += 1
             print(f"[ADMIN] ✓ Imported: {service_name} - ${service_data['price']:.2f}")
