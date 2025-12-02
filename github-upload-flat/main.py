@@ -61,22 +61,16 @@ from routes.customer_routes import customer_bp
 from routes.session_routes import session_bp
 from routes.checkin_routes import checkin_bp
 from routes.quickbooks_routes import quickbooks_bp
-from routes.email_routes import email_bp
-from routes.email_routes_v2 import email_bp_v2
-from routes.email_routes_simple import email_simple_bp
-from routes.email_routes_attachment import email_attachment_bp
-from routes.email_routes_improved import email_improved_bp
 from routes.admin_routes import admin_bp
+from routes.email_routes_simple import email_simple_bp
 
-app.register_blueprint(email_bp)
+
 app.register_blueprint(session_bp)
 app.register_blueprint(customer_bp, url_prefix="/api/customers")
 app.register_blueprint(checkin_bp, url_prefix="/api/checkins")
 app.register_blueprint(quickbooks_bp, url_prefix="/api/quickbooks")
-app.register_blueprint(email_simple_bp, url_prefix="/api/email")
-app.register_blueprint(email_attachment_bp, url_prefix="/api/email")
-app.register_blueprint(email_improved_bp, url_prefix="/api/email")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
+app.register_blueprint(email_simple_bp, url_prefix="/api/email")
 
 def create_tables_and_initial_data():
     db.create_all()
