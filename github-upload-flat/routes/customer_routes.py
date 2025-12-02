@@ -22,13 +22,13 @@ def register_customer():
         return jsonify({"error": "Customer with this email already exists"}), 409
 
     new_customer = Customer(
-        firstName=firstName,
-        lastName=lastName,
-        email=email,
-        phone=phone,
-        address=address,
-        qrCodeData=qrCodeData
-    )
+    firstName=data['firstName'],
+    lastName=data['lastName'],
+    email=data['email'],
+    phone=data.get('phone'),
+    address=data.get('address'),
+    qr_code_data=qr_code_data  # ✅ Bon nom
+)
     db.session.add(new_customer)
     db.session.commit()
 
