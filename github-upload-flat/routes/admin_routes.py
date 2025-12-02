@@ -165,5 +165,3 @@ def import_predefined_services():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-
