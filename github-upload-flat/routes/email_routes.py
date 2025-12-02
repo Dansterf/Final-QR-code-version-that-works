@@ -1,150 +1,124 @@
 from flask import Blueprint, request, jsonify
+import qrcode
+import io
+import base64
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 import os
-import requests
-import json
 
-email_bp = Blueprint("email_bp", __name__)
+email_bp = Blueprint('email', __name__, url_prefix='/api/email')
 
-def send_email_with_sendgrid_http(to_email, subject, html_content):
-    """
-    Send an email using SendGrid HTTP API (no SDK required)
-    Returns (success: bool, message: str)
-    """
-    sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
-    from_email = os.environ.get("SENDGRID_FROM_EMAIL", "noreply@qrcheckin.app")
-    
-    if not sendgrid_api_key:
-        return False, "SendGrid API key not configured"
-    
+@email_bp.route('/send-qr', methods=['POST'])
+def send_qr_email():
+    """Send QR code email to customer"""
     try:
-        url = "https://api.sendgrid.com/v3/mail/send"
-        headers = {
-            "Authorization": f"Bearer {sendgrid_api_key}",
-            "Content-Type": "application/json"
-        }
+        data = request.get_json()
         
-        payload = {
-            "personalizations": [{
-                "to": [{"email": to_email}],
-                "subject": subject
-            }],
-            "from": {"email": from_email},
-            "content": [{
-                "type": "text/html",
-                "value": html_content
-            }]
-        }
+        # Validate required fields
+        if not data.get('email') or not data.get('name') or not data.get('qrCodeData'):
+            return jsonify({"error": "Email, name, and QR code data are required"}), 400
         
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        email = data['email']
+        name = data['name']
+        qr_code_data = data['qrCodeData']
+        
+        print(f"[EMAIL] Request received - To: {email}, Name: {name}, QR Data: {qr_code_data}")
+        
+        # Get the base URL from environment or use default
+        base_url = os.environ.get('BASE_URL', 'https://final-qr-code-version-that-works-production.up.railway.app')
+        
+        # Create full URL for QR code
+        qr_url = f"{base_url}/checkin?qr={qr_code_data}"
+        
+        print(f"[EMAIL] QR URL: {qr_url}")
+        
+        # Generate QR code with full URL
+        print(f"[EMAIL] Generating QR code for: {qr_url}")
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(qr_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        print(f"[EMAIL] QR code generated, base64 length: {len(qr_base64)}")
+        
+        # Create email content
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background-color: #f8f9fa; padding: 30px; border-radius: 10px;">
+                <h1 style="color: #333; text-align: center;">Bienvenue {name}!</h1>
+                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                    Merci de vous être enregistré(e). Voici votre QR code personnel pour le check-in.
+                </p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <img src="cid:qrcode" alt="QR Code" style="max-width: 300px; border: 2px solid #ddd; padding: 10px; background: white; border-radius: 10px;">
+                </div>
+                <div style="background-color: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="color: #1976d2; margin-top: 0;">Comment utiliser votre QR code:</h3>
+                    <ol style="color: #666; line-height: 1.8;">
+                        <li>Scannez ce QR code avec votre téléphone lors de votre arrivée</li>
+                        <li>Ou cliquez sur le lien ci-dessous depuis votre téléphone</li>
+                        <li>Votre check-in sera enregistré automatiquement</li>
+                    </ol>
+                </div>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{qr_url}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        Check-in Direct
+                    </a>
+                </div>
+                <p style="color: #999; font-size: 12px; text-align: center; margin-top: 30px;">
+                    Gardez cet email pour vos prochaines visites.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Create SendGrid message
+        message = Mail(
+            from_email=os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@yourdomain.com'),
+            to_emails=email,
+            subject=f'Votre QR Code - {name}',
+            html_content=html_content
+        )
+        
+        # Attach QR code
+        attachment = Attachment(
+            FileContent(qr_base64),
+            FileName('qrcode.png'),
+            FileType('image/png'),
+            Disposition('inline'),
+            content_id='qrcode'
+        )
+        message.attachment = attachment
+        
+        # Send email
+        print(f"[EMAIL] Sending email to {email}...")
+        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+        response = sg.send(message)
+        
+        print(f"[EMAIL] SendGrid response: {response.status_code}")
         
         if response.status_code in [200, 201, 202]:
-            return True, f"Email sent successfully via SendGrid (status: {response.status_code})"
+            return jsonify({
+                "message": "Email sent successfully",
+                "qr_url": qr_url
+            }), 200
         else:
-            return False, f"SendGrid returned status code: {response.status_code} - {response.text}"
+            return jsonify({"error": "Failed to send email"}), 500
             
     except Exception as e:
-        return False, f"Error sending email: {str(e)}"
-
-def simulate_email(to_email, subject, html_content):
-    """Simulate email sending by printing to console"""
-    print("=" * 80)
-    print("SIMULATED EMAIL")
-    print("=" * 80)
-    print(f"To: {to_email}")
-    print(f"Subject: {subject}")
-    print(f"Content: {html_content[:200]}...")
-    print("=" * 80)
-    return True, "Email simulated (printed to console)"
-
-@email_bp.route("/send-qr-code", methods=["POST"])
-def send_qr_code_email():
-    data = request.get_json()
-    recipient_email = data.get("recipient_email")
-    customer_name = data.get("customer_name")
-    qr_code_url = data.get("qr_code_url")
-
-    if not all([recipient_email, customer_name, qr_code_url]):
-        return jsonify({"error": "Missing required email data"}), 400
-
-    # Create HTML email content
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .header {{ background-color: #4CAF50; color: white; padding: 20px; text-align: center; }}
-            .content {{ padding: 20px; background-color: #f9f9f9; }}
-            .qr-code {{ text-align: center; margin: 20px 0; }}
-            .qr-code img {{ max-width: 300px; border: 2px solid #ddd; padding: 10px; background: white; }}
-            .footer {{ text-align: center; padding: 20px; font-size: 12px; color: #666; }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>Welcome to Doulos Education!</h1>
-            </div>
-            <div class="content">
-                <p>Dear {customer_name},</p>
-                <p>Thank you for registering with our tutoring program. We're excited to have you!</p>
-                <p>Here is your unique QR code for quick and easy check-ins:</p>
-                <div class="qr-code">
-                    <img src="{qr_code_url}" alt="Your QR Code" />
-                </div>
-                <p><strong>Important:</strong> Please save this QR code to your phone or print it out. You will need to show it to check in for tutoring sessions.</p>
-                <p>If you have any questions, please don't hesitate to contact us.</p>
-                <p>Best regards,<br>The Doulos Education Team</p>
-            </div>
-            <div class="footer">
-                <p>This is an automated message. Please do not reply to this email.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-
-    # Check if SendGrid is configured
-    sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
-    
-    if not sendgrid_api_key:
-        # Fallback to simulated email
-        success, message = simulate_email(recipient_email, "Your QR Code for Doulos Education", html_content)
-        return jsonify({"message": message, "simulated": True}), 200
-    
-    # Try to send real email via SendGrid HTTP API
-    success, message = send_email_with_sendgrid_http(
-        recipient_email,
-        "Your QR Code for Doulos Education",
-        html_content
-    )
-    
-    if success:
-        return jsonify({"message": message, "simulated": False}), 200
-    else:
-        # If SendGrid fails, fall back to simulation
-        success, sim_message = simulate_email(recipient_email, "Your QR Code for Doulos Education", html_content)
-        return jsonify({
-            "message": f"SendGrid failed ({message}), email simulated instead",
-            "simulated": True
-        }), 200
-
-@email_bp.route("/test", methods=["GET"])
-def test_email():
-    """Test endpoint to verify email configuration"""
-    sendgrid_api_key = os.environ.get("SENDGRID_API_KEY")
-    from_email = os.environ.get("SENDGRID_FROM_EMAIL")
-    
-    if not sendgrid_api_key:
-        return jsonify({
-            "configured": False,
-            "message": "SendGrid API key not set"
-        }), 200
-    
-    return jsonify({
-        "configured": True,
-        "from_email": from_email,
-        "api_key_present": bool(sendgrid_api_key),
-        "api_key_preview": sendgrid_api_key[:10] + "..." if sendgrid_api_key else None
-    }), 200
+        print(f"[EMAIL] Error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
