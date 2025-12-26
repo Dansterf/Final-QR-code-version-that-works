@@ -110,7 +110,7 @@ This is an automated message. Please do not reply to this email.
         print(f"[EMAIL] EXCEPTION: {error_msg}")
         return False, error_msg
 
-@email_improved_bp.route("/send-qr-email", methods=["POST"])
+@email_improved_bp.route("/send-qr", methods=["POST"])
 def send_qr_code_email():
     """Send QR code email - backend generates QR code from customer data"""
     data = request.get_json()
