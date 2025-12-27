@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Check-In - Doulos Education</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .scan-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .scan-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .scan-section h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .scan-section p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        #qrInput {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        #qrInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .customer-info {
+            background: #e8f4f8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .customer-info.show {
+            display: block;
+        }
+
+        .customer-info h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .customer-info p {
+            color: #333;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .scan-icon {
+                font-size: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Student Check-In</h1>
+            <p>Doulos Education</p>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="scan-section">
+            <div class="scan-icon">📱</div>
+            <h2>Scan QR Code</h2>
+            <p>Click in the box below and scan your QR code</p>
+            <input 
+                type="text" 
+                id="qrInput" 
+                placeholder="Tap here and scan your QR code..."
+                autocomplete="off"
+                autofocus
+            >
+        </div>
+
+        <div id="customerInfo" class="customer-info">
+            <h3>👤 Student Information</h3>
+            <p><strong>Name:</strong> <span id="customerName"></span></p>
+            <p><strong>Email:</strong> <span id="customerEmail"></span></p>
+        </div>
+
+        <form id="checkinForm" class="form-section">
+            <div class="form-group">
+                <label for="sessionType">📖 Session Type *</label>
+                <select id="sessionType" required>
+                    <option value="">Loading services...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">📝 Notes (Optional)</label>
+                <textarea 
+                    id="notes" 
+                    placeholder="Add any notes about this session..."
+                ></textarea>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                ✅ Complete Check-In
+            </button>
+
+            <div id="loading" class="loading">Processing...</div>
+        </form>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = window.location.origin;
+        
+        // State
+        let currentCustomer = null;
+        let services = [];
+
+        // DOM Elements
+        const qrInput = document.getElementById('qrInput');
+        const sessionTypeSelect = document.getElementById('sessionType');
+        const notesInput = document.getElementById('notes');
+        const checkinForm = document.getElementById('checkinForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('message');
+        const customerInfoDiv = document.getElementById('customerInfo');
+        const loadingDiv = document.getElementById('loading');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServices();
+            setupEventListeners();
+        });
+
+        // Load available services
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/services`);
+                if (!response.ok) throw new Error('Failed to load services');
+                
+                services = await response.json();
+                
+                sessionTypeSelect.innerHTML = '<option value="">Select a session type...</option>';
+                services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} - $${service.price}`;
+                    sessionTypeSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading services:', error);
+                showMessage('Failed to load services. Please refresh the page.', 'error');
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // QR Code input
+            qrInput.addEventListener('input', handleQRScan);
+            
+            // Form submission
+            checkinForm.addEventListener('submit', handleCheckIn);
+            
+            // Keep focus on QR input
+            qrInput.addEventListener('blur', () => {
+                if (!currentCustomer) {
+                    setTimeout(() => qrInput.focus(), 100);
+                }
+            });
+        }
+
+        // Handle QR code scan
+        async function handleQRScan(e) {
+            const qrCode = e.target.value.trim();
+            
+            if (qrCode.length < 5) return; // Wait for complete scan
+            
+            try {
+                // Look up customer by QR code
+                const response = await fetch(`${API_BASE_URL}/api/admin/customers`);
+                if (!response.ok) throw new Error('Failed to fetch customers');
+                
+                const customers = await response.json();
+                const customer = customers.find(c => c.qrCodeData === qrCode);
+                
+                if (customer) {
+                    currentCustomer = customer;
+                    displayCustomerInfo(customer);
+                    sessionTypeSelect.focus();
+                } else {
+                    showMessage('❌ QR code not recognized. Please register first.', 'error');
+                    qrInput.value = '';
+                    currentCustomer = null;
+                    hideCustomerInfo();
+                }
+            } catch (error) {
+                console.error('Error looking up customer:', error);
+                showMessage('Error looking up customer. Please try again.', 'error');
+                qrInput.value = '';
+            }
+        }
+
+        // Display customer information
+        function displayCustomerInfo(customer) {
+            document.getElementById('customerName').textContent = 
+                `${customer.firstName} ${customer.lastName}`;
+            document.getElementById('customerEmail').textContent = customer.email;
+            customerInfoDiv.classList.add('show');
+        }
+
+        // Hide customer information
+        function hideCustomerInfo() {
+            customerInfoDiv.classList.remove('show');
+        }
+
+        // Handle check-in submission
+        async function handleCheckIn(e) {
+            e.preventDefault();
+            
+            if (!currentCustomer) {
+                showMessage('Please scan your QR code first.', 'error');
+                qrInput.focus();
+                return;
+            }
+            
+            const sessionTypeId = sessionTypeSelect.value;
+            const notes = notesInput.value.trim();
+            
+            if (!sessionTypeId) {
+                showMessage('Please select a session type.', 'error');
+                return;
+            }
+            
+            // Show loading
+            submitBtn.disabled = true;
+            loadingDiv.classList.add('show');
+            hideMessage();
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/checkins`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        qrCodeValue: currentCustomer.qrCodeData,
+                        sessionTypeId: parseInt(sessionTypeId),
+                        notes: notes || null
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Check-in failed');
+                }
+                
+                const result = await response.json();
+                
+                // Success!
+                showMessage(`✅ Check-in successful! Welcome, ${currentCustomer.firstName}!`, 'success');
+                
+                // Reset form
+                setTimeout(() => {
+                    resetForm();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Check-in error:', error);
+                showMessage(`❌ Check-in failed: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loadingDiv.classList.remove('show');
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            qrInput.value = '';
+            sessionTypeSelect.value = '';
+            notesInput.value = '';
+            currentCustomer = null;
+            hideCustomerInfo();
+            hideMessage();
+            qrInput.focus();
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type} show`;
+        }
+
+        // Hide message
+        function hideMessage() {
+            messageDiv.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
