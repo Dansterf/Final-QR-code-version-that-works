@@ -426,5 +426,31 @@ def get_checkins():
             "price": session_type.price if session_type else 0.0
         })
     return jsonify(result), 200
-
-
+@checkin_bp.route("/history", methods=["GET"])
+def get_checkin_history():
+    """Get check-in history with customer and session details"""
+    try:
+        checkins = CheckIn.query.order_by(CheckIn.check_in_time.desc()).all()
+        result = []
+        
+        for checkin in checkins:
+            customer = Customer.query.get(checkin.customer_id)
+            session_type = SessionType.query.get(checkin.session_type_id)
+            
+            result.append({
+                "id": checkin.id,
+                "customer_id": checkin.customer_id,
+                "customer_name": f"{customer.firstName} {customer.lastName}" if customer else "Unknown",
+                "customer_email": customer.email if customer else None,
+                "session_type_id": checkin.session_type_id,
+                "session_type_name": session_type.name if session_type else "Unknown",
+                "price": float(session_type.price) if session_type else 0.0,
+                "check_in_time": checkin.check_in_time.isoformat(),
+                "notes": checkin.notes
+            })
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to get check-in history: {str(e)}")
+        return jsonify({"error": "Failed to retrieve check-in history"}), 500
