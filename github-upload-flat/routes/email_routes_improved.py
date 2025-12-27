@@ -110,13 +110,14 @@ This is an automated message. Please do not reply to this email.
         print(f"[EMAIL] EXCEPTION: {error_msg}")
         return False, error_msg
 
-@email_improved_bp.route("/send-qr", methods=["POST"])
-def send_qr_code_email():
-    """Send QR code email - backend generates QR code from customer data"""
+def handle_qr_email_request():
+    """Common handler for all QR email routes"""
     data = request.get_json()
-    recipient_email = data.get("recipient_email")
-    customer_name = data.get("customer_name")
-    qr_code_data = data.get("qr_code_data")  # The text data to encode in QR code
+    
+    # Support multiple field name variations
+    recipient_email = data.get("recipient_email") or data.get("email")
+    customer_name = data.get("customer_name") or data.get("name")
+    qr_code_data = data.get("qr_code_data") or data.get("qrCodeData") or data.get("qr_data")
 
     print(f"[EMAIL] Request received - To: {recipient_email}, Name: {customer_name}, QR Data: {qr_code_data}")
 
@@ -140,3 +141,29 @@ def send_qr_code_email():
         return jsonify({"message": message, "simulated": False}), 200
     else:
         return jsonify({"error": message, "simulated": False}), 500
+
+# ✅ CREATE ALL POSSIBLE ROUTES - so any frontend call will work!
+@email_improved_bp.route("/send-qr", methods=["POST"])
+def send_qr_code_email_1():
+    """Send QR code email - Route 1"""
+    return handle_qr_email_request()
+
+@email_improved_bp.route("/send-qr-email", methods=["POST"])
+def send_qr_code_email_2():
+    """Send QR code email - Route 2"""
+    return handle_qr_email_request()
+
+@email_improved_bp.route("/send-qr-code", methods=["POST"])
+def send_qr_code_email_3():
+    """Send QR code email - Route 3"""
+    return handle_qr_email_request()
+
+@email_improved_bp.route("/send-qr-code-v2", methods=["POST"])
+def send_qr_code_email_4():
+    """Send QR code email - Route 4"""
+    return handle_qr_email_request()
+
+@email_improved_bp.route("/send", methods=["POST"])
+def send_qr_code_email_5():
+    """Send QR code email - Route 5"""
+    return handle_qr_email_request()
