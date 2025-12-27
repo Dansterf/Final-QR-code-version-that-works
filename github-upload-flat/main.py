@@ -63,6 +63,7 @@ from routes.checkin_routes import checkin_bp
 from routes.quickbooks_routes import quickbooks_bp
 from routes.admin_routes import admin_bp
 from routes.email_routes_improved import email_improved_bp
+from routes.simple_checkin_route import simple_checkin_bp
 
 
 app.register_blueprint(session_bp)
@@ -71,6 +72,7 @@ app.register_blueprint(checkin_bp, url_prefix="/api/checkins")
 app.register_blueprint(quickbooks_bp, url_prefix="/api/quickbooks")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(email_improved_bp, url_prefix="/api/email")
+app.register_blueprint(simple_checkin_bp)
 
 def create_tables_and_initial_data():
     db.create_all()
