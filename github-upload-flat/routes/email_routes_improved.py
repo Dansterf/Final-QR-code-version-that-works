@@ -34,14 +34,13 @@ def send_email_with_generated_qr(to_email, customer_name, qr_code_data):
         return False, "SendGrid API key not configured"
     
     try:
-        # ✅ FIX: Create full URL for QR code instead of just the text
-     base_url = os.environ.get('BASE_URL', 'https://final-qr-code-version-that-works-production.up.railway.app' )
-qr_url = base_url  # Point directly to homepage
-
+        # ✅ Point to homepage - student will click "Start Check-In" to scan
+        base_url = os.environ.get('BASE_URL', 'https://final-qr-code-version-that-works-production.up.railway.app')
+        qr_url = base_url
         
-        # Generate QR code on backend with full URL
+        # Generate QR code with homepage URL
         print(f"[EMAIL] Generating QR code for URL: {qr_url}")
-        qr_base64 = generate_qr_code_base64(qr_url)  # ✅ Changed from qr_code_data to qr_url
+        qr_base64 = generate_qr_code_base64(qr_url)
         print(f"[EMAIL] QR code generated, base64 length: {len(qr_base64)}")
         
         url = "https://api.sendgrid.com/v3/mail/send"
@@ -61,11 +60,12 @@ IMPORTANT: Please save the attached QR code image to your phone or print it out.
 
 How to use your QR code:
 1. Save the attached image to your phone's photo gallery
-2. When checking in, simply SCAN the QR code with your phone's camera
-3. Your phone will automatically open the check-in page
-4. Or print the QR code and scan it at the check-in station
+2. When arriving for your session, scan the QR code with your phone's camera
+3. Your phone will open our check-in website automatically
+4. Click "Start Check-In" and scan your QR code again to complete check-in
+5. Or print the QR code and scan it at the check-in station
 
-Direct check-in link (if QR code doesn't work):
+Direct check-in link:
 {qr_url}
 
 If you have any questions or need assistance, please don't hesitate to contact us.
