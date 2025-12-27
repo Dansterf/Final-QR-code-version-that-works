@@ -35,8 +35,9 @@ def send_email_with_generated_qr(to_email, customer_name, qr_code_data):
     
     try:
         # ✅ FIX: Create full URL for QR code instead of just the text
-        base_url = os.environ.get('BASE_URL', 'https://final-qr-code-version-that-works-production.up.railway.app')
-        qr_url = f"{base_url}/checkin?qr={qr_code_data}"
+     base_url = os.environ.get('BASE_URL', 'https://final-qr-code-version-that-works-production.up.railway.app' )
+qr_url = base_url  # Point directly to homepage
+
         
         # Generate QR code on backend with full URL
         print(f"[EMAIL] Generating QR code for URL: {qr_url}")
