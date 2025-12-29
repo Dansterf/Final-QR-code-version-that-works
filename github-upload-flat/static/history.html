@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-In History - Doulos Education</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .back-button {
+            display: inline-block;
+            color: #00f2fe;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #4facfe;
+        }
+
+        h1 {
+            color: #4facfe;
+            font-size: 32px;
+            flex: 1;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filters input:focus,
+        .filters select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #4facfe;
+            font-size: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state .icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">← Back to Home</a>
+        
+        <div class="header">
+            <h1>📊 Check-In History</h1>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number" id="totalCheckins">0</div>
+                <div class="label">Total Check-Ins</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="todayCheckins">0</div>
+                <div class="label">Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalRevenue">$0</div>
+                <div class="label">Total Revenue</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <input type="text" id="searchInput" placeholder="🔍 Search by name...">
+            <input type="date" id="dateFilter">
+            <select id="serviceFilter">
+                <option value="">All Services</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">Loading check-in history...</div>
+            
+            <table id="historyTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Student Name</th>
+                        <th>Email</th>
+                        <th>Service</th>
+                        <th>Price</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                </tbody>
+            </table>
+
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="icon">📭</div>
+                <h3>No Check-Ins Found</h3>
+                <p>There are no check-ins matching your criteria.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        let allCheckins = [];
+        let filteredCheckins = [];
+
+        // Load check-in history
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/checkins/history`);
+                if (!response.ok) throw new Error('Failed to load history');
+                
+                allCheckins = await response.json();
+                filteredCheckins = [...allCheckins];
+                
+                updateStats();
+                renderTable();
+                loadServices();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('historyTable').style.display = 'table';
+                
+            } catch (error) {
+                console.error('Error loading history:', error);
+                document.getElementById('loading').innerHTML = '❌ Failed to load check-in history';
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = allCheckins.length;
+            const today = allCheckins.filter(c => {
+                const checkInDate = new Date(c.check_in_time);
+                const now = new Date();
+                return checkInDate.toDateString() === now.toDateString();
+            }).length;
+            const revenue = allCheckins.reduce((sum, c) => sum + (c.price || 0), 0);
+
+            document.getElementById('totalCheckins').textContent = total;
+            document.getElementById('todayCheckins').textContent = today;
+            document.getElementById('totalRevenue').textContent = `$${revenue.toFixed(2)}`;
+        }
+
+        // Load services for filter
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/services`);
+                if (!response.ok) return;
+                
+                const services = await response.json();
+                const select = document.getElementById('serviceFilter');
+                
+                services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.name;
+                    option.textContent = service.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('historyBody');
+            const emptyState = document.getElementById('emptyState');
+            const table = document.getElementById('historyTable');
+            
+            tbody.innerHTML = '';
+            
+            if (filteredCheckins.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+            
+            filteredCheckins.forEach(checkin => {
+                const row = document.createElement('tr');
+                const date = new Date(checkin.check_in_time);
+                
+                row.innerHTML = `
+                    <td>${date.toLocaleString()}</td>
+                    <td><strong>${checkin.customer_name}</strong></td>
+                    <td>${checkin.customer_email || 'N/A'}</td>
+                    <td><span class="badge success">${checkin.session_type_name}</span></td>
+                    <td><strong>$${checkin.price.toFixed(2)}</strong></td>
+                    <td>${checkin.notes || '-'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Filter functions
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const dateFilter = document.getElementById('dateFilter').value;
+            const serviceFilter = document.getElementById('serviceFilter').value;
+            
+            filteredCheckins = allCheckins.filter(checkin => {
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    checkin.customer_name.toLowerCase().includes(searchTerm) ||
+                    (checkin.customer_email && checkin.customer_email.toLowerCase().includes(searchTerm));
+                
+                // Date filter
+                const matchesDate = !dateFilter || 
+                    new Date(checkin.check_in_time).toISOString().split('T')[0] === dateFilter;
+                
+                // Service filter
+                const matchesService = !serviceFilter || 
+                    checkin.session_type_name === serviceFilter;
+                
+                return matchesSearch && matchesDate && matchesService;
+            });
+            
+            renderTable();
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('dateFilter').addEventListener('change', applyFilters);
+        document.getElementById('serviceFilter').addEventListener('change', applyFilters);
+
+        // Initialize
+        loadHistory();
+    </script>
+</body>
+</html>
