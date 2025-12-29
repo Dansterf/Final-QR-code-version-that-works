@@ -391,7 +391,7 @@
         // Load available services
         async function loadServices() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/services`);
+                const response = await fetch(`${API_BASE_URL}/api/session-types`);
                 if (!response.ok) throw new Error('Failed to load services');
                 
                 services = await response.json();
