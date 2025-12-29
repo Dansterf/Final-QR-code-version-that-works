@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Registration - Doulos Education</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .back-button {
+            display: inline-block;
+            color: #f5576c;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #f093fb;
+        }
+
+        h1 {
+            color: #f5576c;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #f5576c;
+        }
+
+        .form-group.required label::after {
+            content: " *";
+            color: #f5576c;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #f5576c;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .qr-preview {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .qr-preview.show {
+            display: block;
+        }
+
+        .qr-preview img {
+            max-width: 200px;
+            margin: 10px 0;
+        }
+
+        .qr-preview h3 {
+            color: #f5576c;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">← Back to Home</a>
+        
+        <div class="header">
+            <h1>👤 Customer Registration</h1>
+            <p class="subtitle">Register a new student</p>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <form id="registrationForm">
+            <div class="form-group required">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" required>
+            </div>
+
+            <div class="form-group required">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" required>
+            </div>
+
+            <div class="form-group required">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="(123) 456-7890">
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Register Student
+            </button>
+
+            <div id="loading" class="loading">Processing...</div>
+        </form>
+
+        <div id="qrPreview" class="qr-preview">
+            <h3>✅ Registration Successful!</h3>
+            <p>Student has been registered. QR code will be sent via email.</p>
+            <button class="btn" onclick="resetForm()" style="margin-top: 20px;">
+                Register Another Student
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        const form = document.getElementById('registrationForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingDiv = document.getElementById('loading');
+        const messageDiv = document.getElementById('message');
+        const qrPreview = document.getElementById('qrPreview');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            if (!firstName || !lastName || !email) {
+                showMessage('Please fill in all required fields.', 'error');
+                return;
+            }
+
+            // Show loading
+            submitBtn.disabled = true;
+            loadingDiv.classList.add('show');
+            hideMessage();
+
+            try {
+                // Register customer
+                const response = await fetch(`${API_BASE_URL}/api/customers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        firstName,
+                        lastName,
+                        email,
+                        phone: phone || null
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Registration failed');
+                }
+
+                const result = await response.json();
+                
+                // Send QR code email
+                try {
+                    await fetch(`${API_BASE_URL}/api/email/send-qr`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email,
+                            firstName,
+                            lastName,
+                            qrCodeData: result.qrCodeData
+                        })
+                    });
+                } catch (emailError) {
+                    console.warn('Email sending failed:', emailError);
+                }
+
+                // Show success
+                form.style.display = 'none';
+                qrPreview.classList.add('show');
+                showMessage(`✅ ${firstName} ${lastName} registered successfully!`, 'success');
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                showMessage(`❌ Registration failed: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                loadingDiv.classList.remove('show');
+            }
+        });
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type} show`;
+        }
+
+        function hideMessage() {
+            messageDiv.classList.remove('show');
+        }
+
+        function resetForm() {
+            form.reset();
+            form.style.display = 'block';
+            qrPreview.classList.remove('show');
+            hideMessage();
+            document.getElementById('firstName').focus();
+        }
+
+        // Auto-focus first field
+        document.getElementById('firstName').focus();
+    </script>
+</body>
+</html>
