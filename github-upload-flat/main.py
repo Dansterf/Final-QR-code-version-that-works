@@ -2,6 +2,8 @@
 from routes.session_routes import session_bp
 from auto_migrate import auto_migrate
 from routes.pages_routes import pages_bp  # Import
+from routes.sessiontype_routes import sessiontype_bp  # Avec les imports
+
 
 
 
@@ -69,6 +71,7 @@ from routes.email_routes_improved import email_improved_bp
 from routes.simple_checkin_route import simple_checkin_bp
 
 
+
 app.register_blueprint(session_bp)
 app.register_blueprint(customer_bp, url_prefix="/api/customers")
 app.register_blueprint(checkin_bp, url_prefix="/api/checkins")
@@ -77,6 +80,7 @@ app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(email_improved_bp, url_prefix="/api/email")
 app.register_blueprint(simple_checkin_bp)
 app.register_blueprint(pages_bp)  # Register
+app.register_blueprint(sessiontype_bp)  # Avec les register_blueprint
 
 def create_tables_and_initial_data():
     db.create_all()
