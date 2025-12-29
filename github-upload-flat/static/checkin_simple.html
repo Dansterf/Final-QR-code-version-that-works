@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -33,6 +33,19 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
+        }
+
+        .back-button {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #764ba2;
         }
 
         .header h1 {
@@ -71,6 +84,48 @@
             margin-bottom: 20px;
         }
 
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         #qrInput {
             width: 100%;
             padding: 15px;
@@ -79,11 +134,41 @@
             font-size: 16px;
             text-align: center;
             transition: border-color 0.3s;
+            margin-bottom: 10px;
         }
 
         #qrInput:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        #cameraContainer {
+            display: none;
+            position: relative;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        #cameraContainer.show {
+            display: block;
+        }
+
+        #video {
+            width: 100%;
+            border-radius: 15px;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
         }
 
         .form-section {
@@ -122,34 +207,6 @@
         .form-group textarea {
             resize: vertical;
             min-height: 80px;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .message {
@@ -229,6 +286,8 @@
 </head>
 <body>
     <div class="container">
+        <a href="/" class="back-button">← Back to Home</a>
+        
         <div class="header">
             <h1>📚 Student Check-In</h1>
             <p>Doulos Education</p>
@@ -239,13 +298,31 @@
         <div class="scan-section">
             <div class="scan-icon">📱</div>
             <h2>Scan QR Code</h2>
-            <p>Click in the box below and scan your QR code</p>
+            <p>Choose your scanning method</p>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" id="cameraBtn" onclick="startCamera()">
+                    📸 Use Camera
+                </button>
+                <button class="btn btn-secondary" id="manualBtn" onclick="useManualInput()">
+                    ⌨️ Manual Input
+                </button>
+            </div>
+
+            <div id="cameraContainer">
+                <video id="video" playsinline></video>
+                <div class="camera-overlay"></div>
+                <button class="btn btn-secondary" onclick="stopCamera()" style="margin-top: 10px;">
+                    ❌ Stop Camera
+                </button>
+            </div>
+
             <input 
                 type="text" 
                 id="qrInput" 
-                placeholder="Tap here and scan your QR code..."
+                placeholder="Or type/scan QR code here..."
                 autocomplete="off"
-                autofocus
+                style="display: none;"
             >
         </div>
 
@@ -271,7 +348,7 @@
                 ></textarea>
             </div>
 
-            <button type="submit" class="btn" id="submitBtn">
+            <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">
                 ✅ Complete Check-In
             </button>
 
@@ -279,6 +356,7 @@
         </form>
     </div>
 
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
         // Configuration
         const API_BASE_URL = window.location.origin;
@@ -286,6 +364,8 @@
         // State
         let currentCustomer = null;
         let services = [];
+        let cameraStream = null;
+        let codeReader = null;
 
         // DOM Elements
         const qrInput = document.getElementById('qrInput');
@@ -296,11 +376,16 @@
         const messageDiv = document.getElementById('message');
         const customerInfoDiv = document.getElementById('customerInfo');
         const loadingDiv = document.getElementById('loading');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const video = document.getElementById('video');
+        const cameraBtn = document.getElementById('cameraBtn');
+        const manualBtn = document.getElementById('manualBtn');
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadServices();
             setupEventListeners();
+            codeReader = new ZXing.BrowserQRCodeReader();
         });
 
         // Load available services
@@ -326,28 +411,69 @@
 
         // Setup event listeners
         function setupEventListeners() {
-            // QR Code input
             qrInput.addEventListener('input', handleQRScan);
-            
-            // Form submission
             checkinForm.addEventListener('submit', handleCheckIn);
-            
-            // Keep focus on QR input
-            qrInput.addEventListener('blur', () => {
-                if (!currentCustomer) {
-                    setTimeout(() => qrInput.focus(), 100);
-                }
-            });
         }
 
-        // Handle QR code scan
+        // Start camera scanning
+        async function startCamera() {
+            try {
+                cameraBtn.disabled = true;
+                cameraContainer.classList.add('show');
+                qrInput.style.display = 'none';
+                
+                showMessage('Starting camera...', 'success');
+                
+                await codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+                    if (result) {
+                        const qrCode = result.text;
+                        console.log('QR Code detected:', qrCode);
+                        handleQRCode(qrCode);
+                        stopCamera();
+                    }
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.error('Camera error:', err);
+                    }
+                });
+                
+                hideMessage();
+                
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                showMessage('❌ Failed to access camera. Please check permissions.', 'error');
+                cameraBtn.disabled = false;
+                cameraContainer.classList.remove('show');
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            if (codeReader) {
+                codeReader.reset();
+            }
+            cameraContainer.classList.remove('show');
+            cameraBtn.disabled = false;
+        }
+
+        // Use manual input
+        function useManualInput() {
+            stopCamera();
+            qrInput.style.display = 'block';
+            qrInput.focus();
+        }
+
+        // Handle QR code scan (manual input)
         async function handleQRScan(e) {
             const qrCode = e.target.value.trim();
             
-            if (qrCode.length < 5) return; // Wait for complete scan
+            if (qrCode.length < 5) return;
             
+            await handleQRCode(qrCode);
+        }
+
+        // Handle QR code (camera or manual)
+        async function handleQRCode(qrCode) {
             try {
-                // Look up customer by QR code
                 const response = await fetch(`${API_BASE_URL}/api/admin/customers`);
                 if (!response.ok) throw new Error('Failed to fetch customers');
                 
@@ -358,6 +484,7 @@
                     currentCustomer = customer;
                     displayCustomerInfo(customer);
                     sessionTypeSelect.focus();
+                    showMessage(`✅ Student found: ${customer.firstName} ${customer.lastName}`, 'success');
                 } else {
                     showMessage('❌ QR code not recognized. Please register first.', 'error');
                     qrInput.value = '';
@@ -389,8 +516,7 @@
             e.preventDefault();
             
             if (!currentCustomer) {
-                showMessage('Please scan your QR code first.', 'error');
-                qrInput.focus();
+                showMessage('Please scan a QR code first.', 'error');
                 return;
             }
             
@@ -402,7 +528,6 @@
                 return;
             }
             
-            // Show loading
             submitBtn.disabled = true;
             loadingDiv.classList.add('show');
             hideMessage();
@@ -427,10 +552,8 @@
                 
                 const result = await response.json();
                 
-                // Success!
                 showMessage(`✅ Check-in successful! Welcome, ${currentCustomer.firstName}!`, 'success');
                 
-                // Reset form
                 setTimeout(() => {
                     resetForm();
                 }, 2000);
@@ -452,7 +575,8 @@
             currentCustomer = null;
             hideCustomerInfo();
             hideMessage();
-            qrInput.focus();
+            stopCamera();
+            qrInput.style.display = 'none';
         }
 
         // Show message
@@ -465,6 +589,11 @@
         function hideMessage() {
             messageDiv.classList.remove('show');
         }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
+        });
     </script>
 </body>
 </html>
