@@ -1,6 +1,9 @@
 
 from routes.session_routes import session_bp
 from auto_migrate import auto_migrate
+from routes.pages_routes import pages_bp  # Import
+
+
 
 import os
 
@@ -73,6 +76,7 @@ app.register_blueprint(quickbooks_bp, url_prefix="/api/quickbooks")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(email_improved_bp, url_prefix="/api/email")
 app.register_blueprint(simple_checkin_bp)
+app.register_blueprint(pages_bp)  # Register
 
 def create_tables_and_initial_data():
     db.create_all()
