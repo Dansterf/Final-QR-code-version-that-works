@@ -474,11 +474,11 @@
         // Handle QR code (camera or manual)
         async function handleQRCode(qrCode) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/admin/customers`);
+                const response = await fetch(`${API_BASE_URL}/api/customers`);
                 if (!response.ok) throw new Error('Failed to fetch customers');
                 
                 const customers = await response.json();
-                const customer = customers.find(c => c.qrCodeData === qrCode);
+                const customer = customers.find(c => c.qr_code_data === qrCode);
                 
                 if (customer) {
                     currentCustomer = customer;
