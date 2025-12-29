@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBooks Sync - Doulos Education</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        .back-button {
+            display: inline-block;
+            color: #38f9d7;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        .back-button:hover {
+            color: #43e97b;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: #43e97b;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .status-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .status-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status-detail {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 15px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(67, 233, 123, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn.secondary:hover {
+            background: #e9ecef;
+            box-shadow: none;
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .info-section {
+            background: #e8f4f8;
+            border-left: 4px solid #43e97b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .info-section h3 {
+            color: #43e97b;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .info-section p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #43e97b;
+            font-size: 16px;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">← Back to Home</a>
+        
+        <div class="header">
+            <h1>💼 QuickBooks Integration</h1>
+            <p class="subtitle">Manage your QuickBooks connection</p>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div id="loading" class="loading">Checking QuickBooks connection...</div>
+
+        <div id="content" style="display: none;">
+            <div class="status-card" id="statusCard">
+                <div class="status-icon" id="statusIcon">🔄</div>
+                <div class="status-text" id="statusText">Checking status...</div>
+                <div class="status-detail" id="statusDetail"></div>
+            </div>
+
+            <div id="connectedActions" style="display: none;">
+                <button class="btn" onclick="testConnection()">
+                    🔍 Test Connection
+                </button>
+                <button class="btn secondary" onclick="refreshToken()">
+                    🔄 Refresh Token
+                </button>
+                <button class="btn danger" onclick="disconnect()">
+                    ❌ Disconnect QuickBooks
+                </button>
+            </div>
+
+            <div id="disconnectedActions" style="display: none;">
+                <button class="btn" onclick="connectQuickBooks()">
+                    🔗 Connect to QuickBooks
+                </button>
+            </div>
+
+            <div class="info-section">
+                <h3>ℹ️ About QuickBooks Integration</h3>
+                <p><strong>Automatic Invoice Creation:</strong> When a student checks in, an invoice is automatically created or updated in QuickBooks.</p>
+                <p><strong>Monthly Grouping:</strong> All check-ins for the same customer in the same month are grouped into a single invoice.</p>
+                <p><strong>Sync Status:</strong> Check-ins are synced in real-time when QuickBooks is connected.</p>
+            </div>
+
+            <div class="info-section">
+                <h3>🔧 How It Works</h3>
+                <p>1. Connect your QuickBooks account using the button above</p>
+                <p>2. Authorize Doulos Education to access your QuickBooks data</p>
+                <p>3. Check-ins will automatically create invoices in QuickBooks</p>
+                <p>4. View invoices in your QuickBooks dashboard</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quickbooks/status`);
+                const data = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+                if (data.connected) {
+                    showConnectedStatus(data);
+                } else {
+                    showDisconnectedStatus();
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                document.getElementById('loading').innerHTML = '❌ Failed to check QuickBooks status';
+            }
+        }
+
+        function showConnectedStatus(data) {
+            document.getElementById('statusIcon').textContent = '✅';
+            document.getElementById('statusText').textContent = 'Connected to QuickBooks';
+            document.getElementById('statusDetail').textContent = 
+                `Company: ${data.company_name || 'Unknown'} | Environment: ${data.environment || 'Unknown'}`;
+            
+            document.getElementById('statusCard').style.background = '#d4edda';
+            document.getElementById('connectedActions').style.display = 'block';
+            document.getElementById('disconnectedActions').style.display = 'none';
+        }
+
+        function showDisconnectedStatus() {
+            document.getElementById('statusIcon').textContent = '❌';
+            document.getElementById('statusText').textContent = 'Not Connected';
+            document.getElementById('statusDetail').textContent = 'Connect to QuickBooks to enable automatic invoicing';
+            
+            document.getElementById('statusCard').style.background = '#f8d7da';
+            document.getElementById('connectedActions').style.display = 'none';
+            document.getElementById('disconnectedActions').style.display = 'block';
+        }
+
+        function connectQuickBooks() {
+            window.location.href = `${API_BASE_URL}/api/quickbooks/connect`;
+        }
+
+        async function testConnection() {
+            showMessage('Testing connection...', 'success');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quickbooks/test`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('✅ Connection test successful!', 'success');
+                } else {
+                    showMessage(`❌ Connection test failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Connection test failed', 'error');
+            }
+        }
+
+        async function refreshToken() {
+            showMessage('Refreshing token...', 'success');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quickbooks/refresh`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('✅ Token refreshed successfully!', 'success');
+                    checkStatus();
+                } else {
+                    showMessage(`❌ Failed to refresh token: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Failed to refresh token', 'error');
+            }
+        }
+
+        async function disconnect() {
+            if (!confirm('Are you sure you want to disconnect QuickBooks? Automatic invoicing will be disabled.')) {
+                return;
+            }
+            
+            showMessage('Disconnecting...', 'success');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/quickbooks/disconnect`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showMessage('✅ Disconnected from QuickBooks', 'success');
+                    checkStatus();
+                } else {
+                    showMessage('❌ Failed to disconnect', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Failed to disconnect', 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type} show`;
+            
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        // Initialize
+        checkStatus();
+    </script>
+</body>
+</html>
