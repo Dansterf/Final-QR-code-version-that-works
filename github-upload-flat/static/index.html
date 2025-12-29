@@ -1,14 +1,272 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doulos Education - QR Check-In System</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>qr-checkin-frontend-v2</title>
-    <script type="module" crossorigin src="/assets/index-DjPgezbw.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CbE8oA98.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            font-size: 80px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 36px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 50px;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .menu-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 30px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .menu-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .menu-button:active {
+            transform: translateY(-2px);
+        }
+
+        .menu-button .icon {
+            font-size: 32px;
+        }
+
+        .menu-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            font-size: 24px;
+        }
+
+        .menu-button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .menu-button.tertiary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .footer-text {
+            color: #999;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 30px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+
+            .menu-button {
+                padding: 25px;
+                font-size: 18px;
+            }
+
+            .menu-button.primary {
+                padding: 35px;
+                font-size: 20px;
+            }
+
+            .logo-icon {
+                font-size: 60px;
+            }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: none;
+            margin-top: 20px;
+            color: #667eea;
+            font-size: 14px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        /* Info banner */
+        .info-banner {
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .info-banner h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .info-banner p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <div class="logo-icon">📚</div>
+            <h1>Doulos Education</h1>
+            <p class="subtitle">QR Check-In System</p>
+        </div>
+
+        <div class="info-banner">
+            <h3>👋 Welcome Staff!</h3>
+            <p>Select an option below to manage student check-ins, view reports, or access admin settings.</p>
+        </div>
+
+        <div class="menu-grid">
+            <a href="/check-in" class="menu-button primary">
+                <span class="icon">📱</span>
+                <span>Student Check-In</span>
+            </a>
+
+            <a href="/admin.html" class="menu-button secondary">
+                <span class="icon">⚙️</span>
+                <span>Admin Panel</span>
+            </a>
+
+            <a href="/manual-sessions.html" class="menu-button tertiary">
+                <span class="icon">📝</span>
+                <span>Manual Sessions</span>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p class="footer-text">© 2025 Doulos Education. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="https://github.com/Dansterf/Final-version-QR-code" target="_blank" class="footer-link">GitHub</a>
+                <a href="/api/checkins/history" class="footer-link">API Status</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add click feedback
+        document.querySelectorAll('.menu-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                // Visual feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 100);
+            });
+        });
+
+        // Check API health on load
+        async function checkAPIHealth() {
+            try {
+                const response = await fetch('/api/admin/services');
+                if (response.ok) {
+                    console.log('✅ API is healthy');
+                } else {
+                    console.warn('⚠️ API returned non-OK status');
+                }
+            } catch (error) {
+                console.error('❌ API health check failed:', error);
+            }
+        }
+
+        // Run health check
+        checkAPIHealth();
+    </script>
+</body>
 </html>
