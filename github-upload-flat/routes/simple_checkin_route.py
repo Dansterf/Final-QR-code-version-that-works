@@ -3,7 +3,7 @@ import os
 
 simple_checkin_bp = Blueprint("simple_checkin_bp", __name__)
 
-@simple_checkin_bp.route("/simple-checkin", methods=["GET"])
+@simple_checkin_bp.route("/check-in", methods=["GET"])
 def simple_checkin_page():
     """Serve the simple check-in HTML page"""
     # Get the static folder path
