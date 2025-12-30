@@ -249,7 +249,7 @@
         // Load check-in history
         async function loadHistory() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/checkins/history`);
+                const response = await fetch(`${API_BASE_URL}/api/checkins/`);
                 if (!response.ok) throw new Error('Failed to load history');
                 
                 allCheckins = await response.json();
