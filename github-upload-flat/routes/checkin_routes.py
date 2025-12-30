@@ -367,7 +367,8 @@ def create_checkin():
     if not all([qrCodeValue, sessionTypeId]):
         return jsonify({"error": "Missing required fields"}), 400
 
-    customer = Customer.query.filter_by(qrCodeData=qrCodeValue).first()
+    customer = Customer.query.filter_by(qr_code_data=qrCodeValue).first()
+
     if not customer:
         return jsonify({"error": "Customer not found for this QR code"}), 404
 
