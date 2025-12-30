@@ -3,11 +3,6 @@ from routes.session_routes import session_bp
 from auto_migrate import auto_migrate
 from routes.pages_routes import pages_bp  # Import
 from routes.sessiontype_routes import sessiontype_bp  # Avec les imports
-from werkzeug.middleware.proxy_fix import ProxyFix
-
-# Après app = Flask(__name__)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
 
 
 
