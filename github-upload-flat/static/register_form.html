@@ -368,13 +368,14 @@
             
             try {
                 // Create customer via API
-                const response = await fetch(`${HTTPS_BASE_URL}/api/customers/`, {
+                const response = await fetch(`${HTTPS_BASE_URL}/api/customers/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        name: fullName,
+                        firstName: firstName,
+                        lastName: lastName,
                         email: email,
                         phone: phone
                     })
@@ -390,7 +391,7 @@
                 
                 // Redirect to success page with QR code data
                 const params = new URLSearchParams({
-                    qr_code: result.qr_code,
+                    qr_code: result.customer.qr_code_data,
                     name: fullName,
                     email: email,
                     phone: phone
