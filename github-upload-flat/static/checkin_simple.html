@@ -354,7 +354,8 @@
                 console.log('Received customers:', customers);
                 
                 // Find customer by QR code
-                const customer = customers.find(c => c.qr_code === qrCode);
+               const customer = customers.find(c => c.qr_code_data === qrCode);
+
                 
                 if (!customer) {
                     throw new Error('Customer not found with this QR code');
