@@ -393,11 +393,16 @@ def get_checkins():
         for checkin in checkins:
             customer = Customer.query.get(checkin.customer_id)
             if customer:
+                # Get price from SessionType
+                session_type_obj = SessionType.query.filter_by(name=checkin.session_type).first()
+                price = float(session_type_obj.price) if session_type_obj else 0.0
+                
                 result.append({
                     'id': checkin.id,
                     'customer_name': f"{customer.firstName} {customer.lastName}",
                     'customer_email': customer.email,
-                    'session_type': checkin.session_type,
+                    'session_type_name': checkin.session_type,
+                    'price': price,
                     'check_in_time': checkin.check_in_time.isoformat(),
                     'notes': checkin.notes
                 })
