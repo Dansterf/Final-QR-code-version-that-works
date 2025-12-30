@@ -354,8 +354,7 @@
                 console.log('Received customers:', customers);
                 
                 // Find customer by QR code
-               const customer = customers.find(c => c.qr_code_data === qrCode);
-
+                const customer = customers.find(c => c.qr_code_data === qrCode);
                 
                 if (!customer) {
                     throw new Error('Customer not found with this QR code');
@@ -374,7 +373,7 @@
         }
 
         function displayCustomerInfo(customer) {
-            document.getElementById('customerName').textContent = customer.name || 'N/A';
+            document.getElementById('customerName').textContent = `${customer.firstName} ${customer.lastName}` || 'N/A';
             document.getElementById('customerEmail').textContent = customer.email || 'N/A';
             document.getElementById('customerPhone').textContent = customer.phone || 'N/A';
             document.getElementById('customerInfo').style.display = 'block';
@@ -403,18 +402,15 @@
                 hideError();
                 hideSuccess();
 
-             const checkinData = {
-    qrCodeValue: currentCustomer.qr_code_data,
-    sessionTypeId: parseInt(sessionTypeId),
-    notes: notes || null
-};
-
+                const checkinData = {
+                    customer_id: currentCustomer.id,
+                    session_type_id: parseInt(sessionTypeId),
+                    notes: notes || null
+                };
 
                 console.log('Submitting check-in:', checkinData);
 
-              const response = await fetch(`${HTTPS_BASE_URL}/api/checkins/`, {
-
-
+                const response = await fetch(`${HTTPS_BASE_URL}/api/checkin/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
