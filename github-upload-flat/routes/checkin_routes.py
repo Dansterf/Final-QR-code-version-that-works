@@ -375,17 +375,16 @@ def create_checkin():
     session_type = SessionType.query.get(sessionTypeId)
     if not session_type:
         return jsonify({"error": "Session type not found"}), 404
-    checkin_time = datetime.utcnow()
+     checkin_time = datetime.utcnow()
     new_checkin = CheckIn(
-    customer_id=customer.id,
-    session_type=session_type.name,
-    notes=notes,
-    check_in_time=checkin_time
-)
-
+        customer_id=customer.id,
+        session_type=session_type.name,
+        notes=notes,
+        check_in_time=checkin_time
+    )
     db.session.add(new_checkin)
     db.session.commit()
-    
+
     # Create or update QuickBooks invoice (monthly grouping)
     print(f"[CHECK-IN] Check-in successful for {customer.firstName} {customer.lastName} on {checkin_time.strftime('%Y-%m-%d')}")
     invoice_id = create_or_update_monthly_invoice(customer, session_type, new_checkin.id, checkin_time)
