@@ -389,12 +389,34 @@
                 const result = await response.json();
                 console.log('Registration successful:', result);
                 
+                // Send email with QR code
+                try {
+                    const emailResponse = await fetch(`${HTTPS_BASE_URL}/api/email/send-qr`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            recipient_email: email,
+                            customer_name: fullName,
+                            qr_code_data: result.customer.qr_code_data
+                        })
+                    });
+                    
+                    const emailResult = await emailResponse.json();
+                    console.log('Email result:', emailResult);
+                } catch (emailError) {
+                    console.error('Email sending failed:', emailError);
+                    // Continue even if email fails
+                }
+                
                 // Redirect to success page with QR code data
                 const params = new URLSearchParams({
                     qr_code: result.customer.qr_code_data,
                     name: fullName,
                     email: email,
-                    phone: phone
+                    phone: phone,
+                    email_sent: 'true'
                 });
                 
                 window.location.href = `/register-customer?${params.toString()}`;
