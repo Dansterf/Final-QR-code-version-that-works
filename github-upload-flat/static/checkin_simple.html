@@ -403,11 +403,12 @@
                 hideError();
                 hideSuccess();
 
-                const checkinData = {
-                    customer_id: currentCustomer.id,
-                    session_type_id: parseInt(sessionTypeId),
-                    notes: notes || null
-                };
+             const checkinData = {
+    qrCodeValue: currentCustomer.qr_code_data,
+    sessionTypeId: parseInt(sessionTypeId),
+    notes: notes || null
+};
+
 
                 console.log('Submitting check-in:', checkinData);
 
