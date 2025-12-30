@@ -1,4 +1,3 @@
-
 from flask import Blueprint, request, jsonify
 from db import db
 from models.models import CheckIn, Customer, SessionType
@@ -356,6 +355,58 @@ def find_or_create_qb_item(session_type, access_token, realm_id):
     except Exception as e:
         print(f"[QUICKBOOKS] Error finding/creating item: {str(e)}")
         return None
+
+@checkin_bp.route("/", methods=["GET"])
+def get_checkins():
+    """Get all check-ins with optional filters"""
+    try:
+        # Get query parameters
+        customer_name = request.args.get('customer_name')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        service_type = request.args.get('service_type')
+        
+        # Base query
+        query = db.session.query(CheckIn).join(Customer)
+        
+        # Apply filters
+        if customer_name:
+            query = query.filter(
+                (Customer.firstName.ilike(f'%{customer_name}%')) |
+                (Customer.lastName.ilike(f'%{customer_name}%'))
+            )
+        
+        if start_date:
+            query = query.filter(CheckIn.check_in_time >= start_date)
+        
+        if end_date:
+            query = query.filter(CheckIn.check_in_time <= end_date)
+        
+        if service_type:
+            query = query.filter(CheckIn.session_type == service_type)
+        
+        # Order by most recent first
+        checkins = query.order_by(CheckIn.check_in_time.desc()).all()
+        
+        # Format response
+        result = []
+        for checkin in checkins:
+            customer = Customer.query.get(checkin.customer_id)
+            if customer:
+                result.append({
+                    'id': checkin.id,
+                    'customer_name': f"{customer.firstName} {customer.lastName}",
+                    'customer_email': customer.email,
+                    'session_type': checkin.session_type,
+                    'check_in_time': checkin.check_in_time.isoformat(),
+                    'notes': checkin.notes
+                })
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to get check-ins: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @checkin_bp.route("/", methods=["POST"])
 def create_checkin():
