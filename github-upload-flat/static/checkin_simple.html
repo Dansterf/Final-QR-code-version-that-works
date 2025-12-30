@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -30,22 +30,17 @@
             padding: 40px;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
         .back-button {
             display: inline-block;
             color: #667eea;
             text-decoration: none;
             font-size: 14px;
             margin-bottom: 20px;
-            transition: color 0.3s;
         }
 
-        .back-button:hover {
-            color: #764ba2;
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
         }
 
         .header h1 {
@@ -63,35 +58,58 @@
             background: #f8f9fa;
             border-radius: 15px;
             padding: 30px;
-            text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .scan-icon {
-            font-size: 60px;
+            text-size: 60px;
+            text-align: center;
             margin-bottom: 15px;
         }
 
-        .scan-section h2 {
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
             color: #333;
-            font-size: 20px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 8px;
         }
 
-        .scan-section p {
-            color: #666;
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             font-size: 14px;
-            margin-bottom: 20px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .btn {
-            flex: 1;
+            width: 100%;
             padding: 15px;
             border: none;
             border-radius: 10px;
@@ -108,113 +126,39 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .btn:disabled {
+        .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none !important;
+            transform: none;
         }
 
-        #qrInput {
-            width: 100%;
+        .customer-info {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
             padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            text-align: center;
-            transition: border-color 0.3s;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .customer-info h3 {
+            color: #2e7d32;
             margin-bottom: 10px;
         }
 
-        #qrInput:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        #cameraContainer {
-            display: none;
-            position: relative;
-            margin-bottom: 20px;
-            border-radius: 15px;
-            overflow: hidden;
-        }
-
-        #cameraContainer.show {
-            display: block;
-        }
-
-        #video {
-            width: 100%;
-            border-radius: 15px;
-        }
-
-        .camera-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 250px;
-            height: 250px;
-            border: 3px solid #667eea;
-            border-radius: 15px;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-        }
-
-        .form-section {
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
+        .customer-info p {
             color: #333;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            font-family: inherit;
-            transition: border-color 0.3s;
-        }
-
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
+            margin: 5px 0;
         }
 
         .message {
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-bottom: 20px;
             display: none;
-            font-size: 14px;
         }
 
         .message.success {
@@ -229,58 +173,14 @@
             border: 1px solid #f5c6cb;
         }
 
-        .message.show {
-            display: block;
-        }
-
-        .customer-info {
-            background: #e8f4f8;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .customer-info.show {
-            display: block;
-        }
-
-        .customer-info h3 {
-            color: #667eea;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-
-        .customer-info p {
-            color: #333;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
         .loading {
-            display: none;
             text-align: center;
             color: #667eea;
-            font-size: 14px;
-            margin-top: 10px;
+            display: none;
         }
 
-        .loading.show {
-            display: block;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 30px 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .scan-icon {
-                font-size: 50px;
-            }
+        .form-section {
+            display: none;
         }
     </style>
 </head>
@@ -293,309 +193,218 @@
             <p>Doulos Education</p>
         </div>
 
-        <div id="message" class="message"></div>
+        <div class="message" id="message"></div>
+        <div class="loading" id="loading">⏳ Processing...</div>
 
         <div class="scan-section">
             <div class="scan-icon">📱</div>
-            <h2>Scan QR Code</h2>
-            <p>Choose your scanning method</p>
-            
-            <div class="btn-group">
-                <button class="btn btn-primary" id="cameraBtn" onclick="startCamera()">
-                    📸 Use Camera
-                </button>
-                <button class="btn btn-secondary" id="manualBtn" onclick="useManualInput()">
-                    ⌨️ Manual Input
-                </button>
+            <div class="input-group">
+                <label for="qrInput">Enter QR Code or Student ID:</label>
+                <input 
+                    type="text" 
+                    id="qrInput" 
+                    placeholder="Scan or type QR code here"
+                    autofocus
+                >
             </div>
-
-            <div id="cameraContainer">
-                <video id="video" playsinline></video>
-                <div class="camera-overlay"></div>
-                <button class="btn btn-secondary" onclick="stopCamera()" style="margin-top: 10px;">
-                    ❌ Stop Camera
-                </button>
-            </div>
-
-            <input 
-                type="text" 
-                id="qrInput" 
-                placeholder="Or type/scan QR code here..."
-                autocomplete="off"
-                style="display: none;"
-            >
         </div>
 
-        <div id="customerInfo" class="customer-info">
-            <h3>👤 Student Information</h3>
+        <div class="customer-info" id="customerInfo">
+            <h3>✅ Student Found</h3>
             <p><strong>Name:</strong> <span id="customerName"></span></p>
             <p><strong>Email:</strong> <span id="customerEmail"></span></p>
+            <p><strong>Phone:</strong> <span id="customerPhone"></span></p>
         </div>
 
-        <form id="checkinForm" class="form-section">
-            <div class="form-group">
-                <label for="sessionType">📖 Session Type *</label>
+        <div class="form-section" id="formSection">
+            <div class="input-group">
+                <label for="sessionType">Session Type: *</label>
                 <select id="sessionType" required>
-                    <option value="">Loading services...</option>
+                    <option value="">Select a session type...</option>
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="notes">📝 Notes (Optional)</label>
-                <textarea 
-                    id="notes" 
-                    placeholder="Add any notes about this session..."
-                ></textarea>
+            <div class="input-group">
+                <label for="notes">Notes (Optional):</label>
+                <textarea id="notes" placeholder="Add any notes about this session..."></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary" id="submitBtn" style="width: 100%;">
-                ✅ Complete Check-In
+            <button class="btn btn-primary" id="submitBtn" onclick="submitCheckIn()">
+                Complete Check-In
             </button>
-
-            <div id="loading" class="loading">Processing...</div>
-        </form>
+        </div>
     </div>
 
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
-        // Configuration
-     const API_BASE_URL = '';  // URL relative!
-
-
-        
         // State
         let currentCustomer = null;
-        let services = [];
-        let cameraStream = null;
-        let codeReader = null;
+        let sessionTypes = [];
 
-        // DOM Elements
-        const qrInput = document.getElementById('qrInput');
-        const sessionTypeSelect = document.getElementById('sessionType');
-        const notesInput = document.getElementById('notes');
-        const checkinForm = document.getElementById('checkinForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const messageDiv = document.getElementById('message');
-        const customerInfoDiv = document.getElementById('customerInfo');
-        const loadingDiv = document.getElementById('loading');
-        const cameraContainer = document.getElementById('cameraContainer');
-        const video = document.getElementById('video');
-        const cameraBtn = document.getElementById('cameraBtn');
-        const manualBtn = document.getElementById('manualBtn');
+        // Load session types on page load
+        loadSessionTypes();
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loadServices();
-            setupEventListeners();
-            codeReader = new ZXing.BrowserQRCodeReader();
+        // QR Input handler
+        document.getElementById('qrInput').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const qrCode = e.target.value.trim();
+                if (qrCode) {
+                    await lookupCustomer(qrCode);
+                }
+            }
         });
 
-        // Load available services
-        async function loadServices() {
+        // Load session types
+        async function loadSessionTypes() {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/session-types`);
-                if (!response.ok) throw new Error('Failed to load services');
+                const response = await fetch('/api/session-types');
+                if (!response.ok) {
+                    console.error('Failed to load session types');
+                    return;
+                }
                 
-                services = await response.json();
+                sessionTypes = await response.json();
+                const select = document.getElementById('sessionType');
                 
-                sessionTypeSelect.innerHTML = '<option value="">Select a session type...</option>';
-                services.forEach(service => {
+                sessionTypes.forEach(type => {
                     const option = document.createElement('option');
-                    option.value = service.id;
-                    option.textContent = `${service.name} - $${service.price}`;
-                    sessionTypeSelect.appendChild(option);
+                    option.value = type.id;
+                    option.textContent = `${type.name} - $${type.price}`;
+                    select.appendChild(option);
                 });
             } catch (error) {
-                console.error('Error loading services:', error);
-                showMessage('Failed to load services. Please refresh the page.', 'error');
+                console.error('Error loading session types:', error);
             }
         }
 
-        // Setup event listeners
-        function setupEventListeners() {
-            qrInput.addEventListener('input', handleQRScan);
-            checkinForm.addEventListener('submit', handleCheckIn);
-        }
+        // Lookup customer by QR code
+        async function lookupCustomer(qrCode) {
+            showLoading(true);
+            hideMessage();
+            hideCustomerInfo();
+            hideForm();
 
-        // Start camera scanning
-        async function startCamera() {
             try {
-                cameraBtn.disabled = true;
-                cameraContainer.classList.add('show');
-                qrInput.style.display = 'none';
-                
-                showMessage('Starting camera...', 'success');
-                
-                await codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
-                    if (result) {
-                        const qrCode = result.text;
-                        console.log('QR Code detected:', qrCode);
-                        handleQRCode(qrCode);
-                        stopCamera();
-                    }
-                    if (err && !(err instanceof ZXing.NotFoundException)) {
-                        console.error('Camera error:', err);
-                    }
-                });
-                
-                hideMessage();
-                
-            } catch (error) {
-                console.error('Error starting camera:', error);
-                showMessage('❌ Failed to access camera. Please check permissions.', 'error');
-                cameraBtn.disabled = false;
-                cameraContainer.classList.remove('show');
-            }
-        }
+                const response = await fetch('/api/customers');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch customers');
+                }
 
-        // Stop camera
-        function stopCamera() {
-            if (codeReader) {
-                codeReader.reset();
-            }
-            cameraContainer.classList.remove('show');
-            cameraBtn.disabled = false;
-        }
-
-        // Use manual input
-        function useManualInput() {
-            stopCamera();
-            qrInput.style.display = 'block';
-            qrInput.focus();
-        }
-
-        // Handle QR code scan (manual input)
-        async function handleQRScan(e) {
-            const qrCode = e.target.value.trim();
-            
-            if (qrCode.length < 5) return;
-            
-            await handleQRCode(qrCode);
-        }
-
-        // Handle QR code (camera or manual)
-        async function handleQRCode(qrCode) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/customers`);
-                if (!response.ok) throw new Error('Failed to fetch customers');
-                
                 const customers = await response.json();
                 const customer = customers.find(c => c.qr_code_data === qrCode);
-                
+
                 if (customer) {
                     currentCustomer = customer;
-                    displayCustomerInfo(customer);
-                    sessionTypeSelect.focus();
-                    showMessage(`✅ Student found: ${customer.firstName} ${customer.lastName}`, 'success');
+                    showCustomerInfo(customer);
+                    showForm();
                 } else {
-                    showMessage('❌ QR code not recognized. Please register first.', 'error');
-                    qrInput.value = '';
-                    currentCustomer = null;
-                    hideCustomerInfo();
+                    showMessage('QR code not recognized. Please try again or register the student first.', 'error');
+                    document.getElementById('qrInput').value = '';
                 }
             } catch (error) {
                 console.error('Error looking up customer:', error);
                 showMessage('Error looking up customer. Please try again.', 'error');
-                qrInput.value = '';
+            } finally {
+                showLoading(false);
             }
         }
 
-        // Display customer information
-        function displayCustomerInfo(customer) {
-            document.getElementById('customerName').textContent = 
-                `${customer.firstName} ${customer.lastName}`;
-            document.getElementById('customerEmail').textContent = customer.email;
-            customerInfoDiv.classList.add('show');
-        }
-
-        // Hide customer information
-        function hideCustomerInfo() {
-            customerInfoDiv.classList.remove('show');
-        }
-
-        // Handle check-in submission
-        async function handleCheckIn(e) {
-            e.preventDefault();
-            
+        // Submit check-in
+        async function submitCheckIn() {
             if (!currentCustomer) {
                 showMessage('Please scan a QR code first.', 'error');
                 return;
             }
-            
-            const sessionTypeId = sessionTypeSelect.value;
-            const notes = notesInput.value.trim();
-            
+
+            const sessionTypeId = document.getElementById('sessionType').value;
             if (!sessionTypeId) {
                 showMessage('Please select a session type.', 'error');
                 return;
             }
-            
-            submitBtn.disabled = true;
-            loadingDiv.classList.add('show');
-            hideMessage();
-            
+
+            const notes = document.getElementById('notes').value;
+
+            showLoading(true);
+            document.getElementById('submitBtn').disabled = true;
+
             try {
-                const response = await fetch(`${API_BASE_URL}/api/checkins`, {
+                const response = await fetch('/api/checkins', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        qrCodeValue: currentCustomer.qrCodeData,
-                        sessionTypeId: parseInt(sessionTypeId),
+                        customer_id: currentCustomer.id,
+                        session_type_id: parseInt(sessionTypeId),
                         notes: notes || null
                     })
                 });
-                
+
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Check-in failed');
+                    throw new Error('Failed to create check-in');
                 }
+
+                showMessage('✅ Check-in successful!', 'success');
                 
-                const result = await response.json();
-                
-                showMessage(`✅ Check-in successful! Welcome, ${currentCustomer.firstName}!`, 'success');
-                
+                // Reset form
                 setTimeout(() => {
                     resetForm();
                 }, 2000);
-                
+
             } catch (error) {
-                console.error('Check-in error:', error);
-                showMessage(`❌ Check-in failed: ${error.message}`, 'error');
+                console.error('Error submitting check-in:', error);
+                showMessage('Error submitting check-in. Please try again.', 'error');
+                document.getElementById('submitBtn').disabled = false;
             } finally {
-                submitBtn.disabled = false;
-                loadingDiv.classList.remove('show');
+                showLoading(false);
             }
         }
 
-        // Reset form
-        function resetForm() {
-            qrInput.value = '';
-            sessionTypeSelect.value = '';
-            notesInput.value = '';
-            currentCustomer = null;
-            hideCustomerInfo();
-            hideMessage();
-            stopCamera();
-            qrInput.style.display = 'none';
+        // UI Helper functions
+        function showCustomerInfo(customer) {
+            document.getElementById('customerName').textContent = `${customer.firstName} ${customer.lastName}`;
+            document.getElementById('customerEmail').textContent = customer.email;
+            document.getElementById('customerPhone').textContent = customer.phone || 'N/A';
+            document.getElementById('customerInfo').style.display = 'block';
         }
 
-        // Show message
+        function hideCustomerInfo() {
+            document.getElementById('customerInfo').style.display = 'none';
+        }
+
+        function showForm() {
+            document.getElementById('formSection').style.display = 'block';
+        }
+
+        function hideForm() {
+            document.getElementById('formSection').style.display = 'none';
+        }
+
         function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.className = `message ${type} show`;
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
         }
 
-        // Hide message
         function hideMessage() {
-            messageDiv.classList.remove('show');
+            document.getElementById('message').style.display = 'none';
         }
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            stopCamera();
-        });
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function resetForm() {
+            currentCustomer = null;
+            document.getElementById('qrInput').value = '';
+            document.getElementById('sessionType').value = '';
+            document.getElementById('notes').value = '';
+            document.getElementById('submitBtn').disabled = false;
+            hideCustomerInfo();
+            hideForm();
+            hideMessage();
+            document.getElementById('qrInput').focus();
+        }
     </script>
 </body>
 </html>
