@@ -376,13 +376,13 @@ def create_checkin():
     if not session_type:
         return jsonify({"error": "Session type not found"}), 404
 
-    checkin_time = datetime.utcnow()
     new_checkin = CheckIn(
-        customer_id=customer.id,
-        session_type_id=session_type.id,
-        notes=notes,
-        check_in_time=checkin_time
-    )
+    customer_id=customer.id,
+    session_type=session_type.name,
+    notes=notes,
+    check_in_time=checkin_time
+)
+
     db.session.add(new_checkin)
     db.session.commit()
     
