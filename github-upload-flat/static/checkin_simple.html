@@ -411,7 +411,8 @@
 
                 console.log('Submitting check-in:', checkinData);
 
-                const response = await fetch(`${HTTPS_BASE_URL}/api/checkin/`, {
+               fetch(`${HTTPS_BASE_URL}/api/checkins/`, {
+
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
