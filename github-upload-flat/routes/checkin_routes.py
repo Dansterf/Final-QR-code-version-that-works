@@ -375,8 +375,7 @@ def create_checkin():
     session_type = SessionType.query.get(sessionTypeId)
     if not session_type:
         return jsonify({"error": "Session type not found"}), 404
-checkin_time = datetime.utcnow()
-
+    checkin_time = datetime.utcnow()
     new_checkin = CheckIn(
     customer_id=customer.id,
     session_type=session_type.name,
