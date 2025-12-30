@@ -243,6 +243,12 @@
         <div class="success-icon">✅</div>
         <h1>Registration Successful!</h1>
         <p class="subtitle">Your QR code has been generated</p>
+        
+        <!-- Email Confirmation -->
+        <div class="info-box" id="emailConfirmation" style="background: #d4edda; border-color: #c3e6cb;">
+            <h3 style="color: #155724;">📧 Email Sent!</h3>
+            <p style="color: #155724; margin: 0;">A confirmation email with your QR code has been sent to your email address. Please check your inbox.</p>
+        </div>
 
         <!-- Customer Details -->
         <div class="customer-details" id="customerDetails">
@@ -304,6 +310,14 @@
         const customerName = urlParams.get('name');
         const customerEmail = urlParams.get('email');
         const customerPhone = urlParams.get('phone');
+        const emailSent = urlParams.get('email_sent');
+        
+        // Show/hide email confirmation
+        if (emailSent === 'true') {
+            document.getElementById('emailConfirmation').style.display = 'block';
+        } else {
+            document.getElementById('emailConfirmation').style.display = 'none';
+        }
 
         // Display customer details
         if (customerName) {
