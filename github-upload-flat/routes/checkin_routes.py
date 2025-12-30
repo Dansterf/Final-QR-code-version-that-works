@@ -368,14 +368,14 @@ def create_checkin():
         return jsonify({"error": "Missing required fields"}), 400
 
     customer = Customer.query.filter_by(qr_code_data=qrCodeValue).first()
-
     if not customer:
         return jsonify({"error": "Customer not found for this QR code"}), 404
 
     session_type = SessionType.query.get(sessionTypeId)
     if not session_type:
         return jsonify({"error": "Session type not found"}), 404
-     checkin_time = datetime.utcnow()
+
+    checkin_time = datetime.utcnow()
     new_checkin = CheckIn(
         customer_id=customer.id,
         session_type=session_type.name,
@@ -384,7 +384,7 @@ def create_checkin():
     )
     db.session.add(new_checkin)
     db.session.commit()
-
+    
     # Create or update QuickBooks invoice (monthly grouping)
     print(f"[CHECK-IN] Check-in successful for {customer.firstName} {customer.lastName} on {checkin_time.strftime('%Y-%m-%d')}")
     invoice_id = create_or_update_monthly_invoice(customer, session_type, new_checkin.id, checkin_time)
@@ -394,7 +394,7 @@ def create_checkin():
         "checkin": {
             "id": new_checkin.id,
             "customer_id": new_checkin.customer_id,
-            "session_type_id": new_checkin.session_type_id,
+            "session_type": new_checkin.session_type,
             "check_in_time": new_checkin.check_in_time.isoformat(),
             "notes": new_checkin.notes
         }
@@ -409,48 +409,3 @@ def create_checkin():
         print("[CHECK-IN] ⚠ QuickBooks invoice not created")
 
     return jsonify(response_data), 201
-
-@checkin_bp.route("/", methods=["GET"])
-def get_checkins():
-    checkins = CheckIn.query.all()
-    result = []
-    for checkin in checkins:
-        customer = Customer.query.get(checkin.customer_id)
-        session_type = SessionType.query.get(checkin.session_type_id)
-        result.append({
-            "id": checkin.id,
-            "customerName": f"{customer.firstName} {customer.lastName}" if customer else "Unknown",
-            "sessionType": session_type.name if session_type else "Unknown",
-            "checkInTime": checkin.check_in_time.isoformat(),
-            "notes": checkin.notes,
-            "price": session_type.price if session_type else 0.0
-        })
-    return jsonify(result), 200
-@checkin_bp.route("/history", methods=["GET"])
-def get_checkin_history():
-    """Get check-in history with customer and session details"""
-    try:
-        checkins = CheckIn.query.order_by(CheckIn.check_in_time.desc()).all()
-        result = []
-        
-        for checkin in checkins:
-            customer = Customer.query.get(checkin.customer_id)
-            session_type = SessionType.query.get(checkin.session_type_id)
-            
-            result.append({
-                "id": checkin.id,
-                "customer_id": checkin.customer_id,
-                "customer_name": f"{customer.firstName} {customer.lastName}" if customer else "Unknown",
-                "customer_email": customer.email if customer else None,
-                "session_type_id": checkin.session_type_id,
-                "session_type_name": session_type.name if session_type else "Unknown",
-                "price": float(session_type.price) if session_type else 0.0,
-                "check_in_time": checkin.check_in_time.isoformat(),
-                "notes": checkin.notes
-            })
-        
-        return jsonify(result), 200
-        
-    except Exception as e:
-        print(f"[ERROR] Failed to get check-in history: {str(e)}")
-        return jsonify({"error": "Failed to retrieve check-in history"}), 500
