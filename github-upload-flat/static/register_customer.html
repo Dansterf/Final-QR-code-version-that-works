@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registration Success - Doulos Education</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -271,7 +272,7 @@
         <div class="qr-section">
             <h3 style="color: #333; margin-bottom: 15px;">📱 Your Check-In QR Code</h3>
             <div class="qr-code-container">
-                <img id="qrCodeImage" src="" alt="QR Code">
+                <div id="qrCodeImage"></div>
             </div>
 
             <!-- UUID Display Section -->
@@ -332,8 +333,18 @@
 
         // Display QR code image and UUID
         if (qrCode) {
-            // Set QR code image
-            document.getElementById('qrCodeImage').src = `/api/qr-code/${qrCode}`;
+            // Generate QR code using JavaScript
+            const qrCodeContainer = document.getElementById('qrCodeImage');
+            qrCodeContainer.innerHTML = ''; // Clear any existing content
+            
+            new QRCode(qrCodeContainer, {
+                text: qrCode,
+                width: 250,
+                height: 250,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
             
             // Display UUID text
             document.getElementById('uuidValue').textContent = qrCode;
