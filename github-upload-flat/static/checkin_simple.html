@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Check-In - Doulos Education</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -25,7 +26,7 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
+            max-width: 600px;
             width: 100%;
             padding: 40px;
         }
@@ -94,6 +95,53 @@
             margin-bottom: 15px;
             font-size: 18px;
             text-align: center;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .scan-button, .manual-button {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .scan-button {
+            background: #667eea;
+            color: white;
+        }
+
+        .scan-button:hover {
+            background: #5568d3;
+        }
+
+        .manual-button {
+            background: white;
+            color: #667eea;
+        }
+
+        .manual-button:hover {
+            background: #f0f0f0;
+        }
+
+        .manual-button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        #qr-reader {
+            display: none;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
         .form-group {
@@ -215,6 +263,10 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .manual-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -235,15 +287,27 @@
 
         <!-- QR Code Input Section -->
         <div class="input-section" id="qrInputSection">
-            <h3>📱 Enter QR Code or Student ID:</h3>
-            <div class="form-group">
-                <label for="qrInput">QR Code / Student ID:</label>
-                <input 
-                    type="text" 
-                    id="qrInput" 
-                    placeholder="Enter or scan QR code"
-                    autocomplete="off"
-                >
+            <h3>📱 Scan or Enter QR Code:</h3>
+            
+            <div class="button-group">
+                <button class="scan-button" onclick="startScanner()">📷 Scan QR Code</button>
+                <button class="manual-button" onclick="toggleManualInput()">⌨️ Manual Entry</button>
+            </div>
+
+            <!-- QR Scanner -->
+            <div id="qr-reader"></div>
+
+            <!-- Manual Input -->
+            <div class="manual-input" id="manualInput">
+                <div class="form-group">
+                    <label for="qrInput">QR Code / Student ID:</label>
+                    <input 
+                        type="text" 
+                        id="qrInput" 
+                        placeholder="Enter or paste QR code"
+                        autocomplete="off"
+                    >
+                </div>
             </div>
         </div>
 
@@ -286,6 +350,8 @@
     <script>
         let currentCustomer = null;
         let sessionTypes = [];
+        let html5QrCode = null;
+        let scannerActive = false;
 
         // FORCE HTTPS - Build base URL explicitly
         const HTTPS_BASE_URL = `https://${window.location.host}`;
@@ -295,7 +361,7 @@
             await loadSessionTypes();
         });
 
-        // Listen for Enter key on QR input
+        // Listen for Enter key on manual QR input
         document.getElementById('qrInput').addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -305,6 +371,72 @@
                 }
             }
         });
+
+        function startScanner() {
+            if (scannerActive) {
+                stopScanner();
+                return;
+            }
+
+            const qrReaderDiv = document.getElementById('qr-reader');
+            qrReaderDiv.style.display = 'block';
+            document.getElementById('manualInput').style.display = 'none';
+            document.querySelector('.manual-button').classList.remove('active');
+
+            html5QrCode = new Html5Qrcode("qr-reader");
+
+            const config = { 
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                async (decodedText, decodedResult) => {
+                    console.log(`QR Code detected: ${decodedText}`);
+                    await lookupCustomer(decodedText);
+                    stopScanner();
+                },
+                (errorMessage) => {
+                    // Ignore errors during scanning
+                }
+            ).then(() => {
+                scannerActive = true;
+                document.querySelector('.scan-button').textContent = '⏹️ Stop Scanner';
+            }).catch((err) => {
+                console.error('Error starting scanner:', err);
+                showError('Camera access denied or not available. Please use manual entry.');
+                qrReaderDiv.style.display = 'none';
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode && scannerActive) {
+                html5QrCode.stop().then(() => {
+                    scannerActive = false;
+                    document.getElementById('qr-reader').style.display = 'none';
+                    document.querySelector('.scan-button').textContent = '📷 Scan QR Code';
+                }).catch((err) => {
+                    console.error('Error stopping scanner:', err);
+                });
+            }
+        }
+
+        function toggleManualInput() {
+            stopScanner();
+            const manualInput = document.getElementById('manualInput');
+            const button = document.querySelector('.manual-button');
+            
+            if (manualInput.style.display === 'none' || !manualInput.style.display) {
+                manualInput.style.display = 'block';
+                button.classList.add('active');
+                document.getElementById('qrInput').focus();
+            } else {
+                manualInput.style.display = 'none';
+                button.classList.remove('active');
+            }
+        }
 
         async function loadSessionTypes() {
             try {
@@ -402,15 +534,15 @@
                 hideError();
                 hideSuccess();
 
-              const checkinData = {
-    qrCodeValue: currentCustomer.qr_code_data,
-    sessionTypeId: parseInt(sessionTypeId),
-    notes: notes || null
-};
+                const checkinData = {
+                    qrCodeValue: currentCustomer.qr_code_data,
+                    sessionTypeId: parseInt(sessionTypeId),
+                    notes: notes || null
+                };
 
-console.log('Submitting check-in:', checkinData);
+                console.log('Submitting check-in:', checkinData);
 
-const response = await fetch(`${HTTPS_BASE_URL}/api/checkins/`, {
+                const response = await fetch(`${HTTPS_BASE_URL}/api/checkins/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -448,10 +580,12 @@ const response = await fetch(`${HTTPS_BASE_URL}/api/checkins/`, {
             document.getElementById('notes').value = '';
             document.getElementById('customerInfo').style.display = 'none';
             document.getElementById('checkinForm').style.display = 'none';
+            document.getElementById('manualInput').style.display = 'none';
+            document.querySelector('.manual-button').classList.remove('active');
             currentCustomer = null;
             hideError();
             hideSuccess();
-            document.getElementById('qrInput').focus();
+            stopScanner();
         }
 
         function showError(message) {
