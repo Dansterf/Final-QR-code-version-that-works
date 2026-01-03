@@ -7,8 +7,8 @@ import os
 from datetime import datetime, timedelta
 from threading import Lock
 
-# File path for token storage
-TOKEN_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'qb_token.json')
+# File path for token storage - FIXED: Use absolute path instead of relative
+TOKEN_FILE = os.environ.get("QB_TOKEN_FILE", "/tmp/data/qb_token.json")
 token_lock = Lock()
 
 def save_token_to_file(access_token, refresh_token, realm_id, expires_in):
@@ -22,6 +22,11 @@ def save_token_to_file(access_token, refresh_token, realm_id, expires_in):
             'updated_at': datetime.utcnow().isoformat()
         }
         try:
+            # Ensure directory exists
+            token_dir = os.path.dirname(TOKEN_FILE)
+            if not os.path.exists(token_dir):
+                os.makedirs(token_dir, exist_ok=True)
+            
             with open(TOKEN_FILE, 'w') as f:
                 json.dump(token_data, f)
             print(f"Token saved to file: {TOKEN_FILE}")
@@ -69,4 +74,3 @@ def is_token_valid(token_data):
     if isinstance(expires_at, str):
         expires_at = datetime.fromisoformat(expires_at)
     return datetime.utcnow() < expires_at
-
