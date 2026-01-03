@@ -14,7 +14,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8B1538 0%, #0A1F3D 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -36,13 +36,14 @@
             margin-bottom: 30px;
         }
 
-        .logo-icon {
-            font-size: 80px;
-            margin-bottom: 10px;
+        .logo-image {
+            max-width: 280px;
+            height: auto;
+            margin-bottom: 15px;
         }
 
         h1 {
-            color: #667eea;
+            color: #8B1538;
             font-size: 36px;
             margin-bottom: 10px;
             font-weight: 700;
@@ -55,8 +56,8 @@
         }
 
         .info-banner {
-            background: #e8f4f8;
-            border-left: 4px solid #667eea;
+            background: #f8e8ed;
+            border-left: 4px solid #8B1538;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 30px;
@@ -64,7 +65,7 @@
         }
 
         .info-banner h3 {
-            color: #667eea;
+            color: #8B1538;
             font-size: 16px;
             margin-bottom: 8px;
         }
@@ -83,7 +84,7 @@
         }
 
         .menu-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8B1538 0%, #0A1F3D 100%);
             color: white;
             border: none;
             border-radius: 15px;
@@ -98,13 +99,13 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 30px rgba(139, 21, 56, 0.3);
             min-height: 140px;
         }
 
         .menu-button:hover {
             transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+            box-shadow: 0 15px 40px rgba(139, 21, 56, 0.5);
         }
 
         .menu-button:active {
@@ -129,7 +130,7 @@
         /* Primary action - Student Check-In */
         .menu-button.primary {
             grid-column: 1 / -1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8B1538 0%, #0A1F3D 100%);
             padding: 40px;
             min-height: 160px;
         }
@@ -144,27 +145,27 @@
 
         /* Customer Registration */
         .menu-button.register {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #A01D48 0%, #6B1230 100%);
         }
 
         /* Check-In History */
         .menu-button.history {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: linear-gradient(135deg, #0A1F3D 0%, #051020 100%);
         }
 
         /* QuickBooks Sync */
         .menu-button.quickbooks {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            background: linear-gradient(135deg, #8B1538 0%, #5A0E24 100%);
         }
 
         /* Admin Panel */
         .menu-button.admin {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #B02050 0%, #8B1538 100%);
         }
 
         /* Manual Sessions */
         .menu-button.manual {
-            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+            background: linear-gradient(135deg, #0A1F3D 0%, #8B1538 100%);
         }
 
         .footer {
@@ -187,14 +188,14 @@
         }
 
         .footer-link {
-            color: #667eea;
+            color: #8B1538;
             text-decoration: none;
             font-size: 14px;
             transition: color 0.3s;
         }
 
         .footer-link:hover {
-            color: #764ba2;
+            color: #0A1F3D;
             text-decoration: underline;
         }
 
@@ -242,8 +243,8 @@
                 font-size: 20px;
             }
 
-            .logo-icon {
-                font-size: 60px;
+            .logo-image {
+                max-width: 220px;
             }
         }
     </style>
@@ -251,8 +252,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <div class="logo-icon">📚</div>
-            <h1>Doulos Education</h1>
+            <img src="/doulos-logo.png" alt="Doulos Education" class="logo-image">
             <p class="subtitle">QR Check-In System</p>
         </div>
 
