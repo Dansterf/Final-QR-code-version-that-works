@@ -159,18 +159,22 @@ def get_quickbooks_status():
     if token_data and token_data.get('access_token'):
         if is_token_valid(token_data):
             return jsonify({
+                "connected": True,  # ✅ AJOUTÉ
                 "status": "connected",
                 "message": "QuickBooks is connected and active",
                 "realm_id": token_data.get('realm_id'),
-                "environment": QB_ENVIRONMENT
+                "environment": QB_ENVIRONMENT,
+                "company_name": "QuickBooks Company"  # ✅ AJOUTÉ
             }), 200
         else:
             return jsonify({
+                "connected": False,  # ✅ AJOUTÉ
                 "status": "expired",
                 "message": "QuickBooks token expired. Please reconnect."
             }), 200
     else:
         return jsonify({
+            "connected": False,  # ✅ AJOUTÉ
             "status": "disconnected",
             "message": "QuickBooks not connected. Please connect to QuickBooks Online."
         }), 200
