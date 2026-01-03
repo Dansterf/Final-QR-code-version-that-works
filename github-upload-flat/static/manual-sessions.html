@@ -207,7 +207,7 @@
     </div>
 
     <script>
-        const API_BASE = window.location.origin.replace('http://', 'https://');
+        const API_BASE = 'https://' + window.location.host;
 
         // Load customers and services on page load
         document.addEventListener('DOMContentLoaded', async () => {
@@ -219,20 +219,42 @@
 
         async function loadCustomers() {
             try {
-                const response = await fetch(`${API_BASE}/api/customers`);
-                const customers = await response.json();
+                // Predefined clients list
+                const predefinedClients = [
+                    { id: -1, firstName: 'Anne-Myria', lastName: 'Césil', email: 'wesnercesil@gmail.com' }
+                ];
+                
+                const response = await fetch(`${API_BASE}/api/customers/`);
+                const dbCustomers = await response.json();
+                
+                // Combine predefined and database customers, avoiding duplicates
+                const allCustomers = [...predefinedClients];
+                dbCustomers.forEach(dbCustomer => {
+                    // Check if customer already exists in predefined list by email
+                    const exists = predefinedClients.some(pc => pc.email.toLowerCase() === dbCustomer.email.toLowerCase());
+                    if (!exists) {
+                        allCustomers.push(dbCustomer);
+                    }
+                });
+                
+                // Sort customers by last name, then first name
+                allCustomers.sort((a, b) => {
+                    const lastNameCompare = a.lastName.localeCompare(b.lastName);
+                    if (lastNameCompare !== 0) return lastNameCompare;
+                    return a.firstName.localeCompare(b.firstName);
+                });
                 
                 const select = document.getElementById('customer');
                 select.innerHTML = '<option value="">Sélectionnez un client...</option>';
                 
-                customers.forEach(customer => {
+                allCustomers.forEach(customer => {
                     const option = document.createElement('option');
                     option.value = customer.id;
                     option.textContent = `${customer.firstName} ${customer.lastName} (${customer.email})`;
                     select.appendChild(option);
                 });
 
-                document.getElementById('totalCustomers').textContent = customers.length;
+                document.getElementById('totalCustomers').textContent = allCustomers.length;
             } catch (error) {
                 console.error('Error loading customers:', error);
                 showAlert('Erreur lors du chargement des clients', 'error');
@@ -264,19 +286,66 @@
         document.getElementById('manualSessionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const customerId = document.getElementById('customer').value;
+            let customerId = parseInt(document.getElementById('customer').value);
             const serviceId = document.getElementById('service').value;
             const sessionDate = document.getElementById('sessionDate').value;
             const notes = document.getElementById('notes').value;
 
             try {
+                // If customer ID is negative (predefined customer), create them first
+                if (customerId < 0) {
+                    // Find the predefined customer data
+                    const selectedOption = document.getElementById('customer').selectedOptions[0];
+                    const customerText = selectedOption.textContent;
+                    
+                    // Parse the customer name and email from the option text
+                    // Format: "FirstName LastName (email@example.com)"
+                    const match = customerText.match(/^(.+?)\s+(.+?)\s+\((.+?)\)$/);
+                    if (!match) {
+                        showAlert('❌ Erreur: Format de client invalide', 'error');
+                        return;
+                    }
+                    
+                    const [, firstName, lastName, email] = match;
+                    
+                    showAlert('🔄 Création du client en cours...', 'success');
+                    
+                    // Create the customer in the database
+                    const createResponse = await fetch(`${API_BASE}/api/customers/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            firstName: firstName.trim(),
+                            lastName: lastName.trim(),
+                            email: email.trim(),
+                            customer_type: 'remote'
+                        })
+                    });
+                    
+                    const createResult = await createResponse.json();
+                    
+                    if (!createResponse.ok) {
+                        showAlert('❌ Erreur lors de la création du client: ' + (createResult.error || 'Erreur inconnue'), 'error');
+                        return;
+                    }
+                    
+                    // Use the newly created customer ID
+                    customerId = createResult.customer.id;
+                    
+                    // Reload customers list to show the newly created customer
+                    await loadCustomers();
+                }
+                
+                // Now create the session with the valid customer ID
                 const response = await fetch(`${API_BASE}/api/sessions/manual`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        customer_id: parseInt(customerId),
+                        customer_id: customerId,
                         service_id: parseInt(serviceId),
                         session_date: sessionDate,
                         notes: notes
