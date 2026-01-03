@@ -219,42 +219,20 @@
 
         async function loadCustomers() {
             try {
-                // Predefined clients list
-                const predefinedClients = [
-                    { id: -1, firstName: 'Anne-Myria', lastName: 'Césil', email: 'wesnercesil@gmail.com' }
-                ];
-                
-                const response = await fetch(`${API_BASE}/api/customers/`);
-                const dbCustomers = await response.json();
-                
-                // Combine predefined and database customers, avoiding duplicates
-                const allCustomers = [...predefinedClients];
-                dbCustomers.forEach(dbCustomer => {
-                    // Check if customer already exists in predefined list by email
-                    const exists = predefinedClients.some(pc => pc.email.toLowerCase() === dbCustomer.email.toLowerCase());
-                    if (!exists) {
-                        allCustomers.push(dbCustomer);
-                    }
-                });
-                
-                // Sort customers by last name, then first name
-                allCustomers.sort((a, b) => {
-                    const lastNameCompare = a.lastName.localeCompare(b.lastName);
-                    if (lastNameCompare !== 0) return lastNameCompare;
-                    return a.firstName.localeCompare(b.firstName);
-                });
+                const response = await fetch(`${API_BASE}/api/customers`);
+                const customers = await response.json();
                 
                 const select = document.getElementById('customer');
                 select.innerHTML = '<option value="">Sélectionnez un client...</option>';
                 
-                allCustomers.forEach(customer => {
+                customers.forEach(customer => {
                     const option = document.createElement('option');
                     option.value = customer.id;
                     option.textContent = `${customer.firstName} ${customer.lastName} (${customer.email})`;
                     select.appendChild(option);
                 });
 
-                document.getElementById('totalCustomers').textContent = allCustomers.length;
+                document.getElementById('totalCustomers').textContent = customers.length;
             } catch (error) {
                 console.error('Error loading customers:', error);
                 showAlert('Erreur lors du chargement des clients', 'error');
