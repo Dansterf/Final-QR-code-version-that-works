@@ -3,7 +3,7 @@ from models.models import Customer
 from db import db
 import uuid
 
-customer_bp = Blueprint('customers', __name__, url_prefix='/api/customers')
+customer_bp = Blueprint('customers', __name__)
 
 @customer_bp.route('/register', methods=['POST'])
 def register_customer():
