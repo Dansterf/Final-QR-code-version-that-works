@@ -282,8 +282,25 @@
             document.getElementById('disconnectedActions').style.display = 'block';
         }
 
-        function connectQuickBooks() {
-            window.location.href = `${API_BASE_URL}/api/quickbooks/connect`;
+        async function connectQuickBooks() {
+            try {
+                showMessage('Connecting to QuickBooks...', 'success');
+                
+                // Fetch the authorization URL from the backend
+                const response = await fetch(`${API_BASE_URL}/api/quickbooks/connect`);
+                const data = await response.json();
+                
+                if (response.ok && data.auth_url) {
+                    // Redirect to QuickBooks OAuth page
+                    window.location.href = data.auth_url;
+                } else {
+                    showMessage('❌ Failed to get authorization URL', 'error');
+                    console.error('Connect error:', data);
+                }
+            } catch (error) {
+                showMessage('❌ Failed to connect to QuickBooks', 'error');
+                console.error('Connect error:', error);
+            }
         }
 
         async function testConnection() {
