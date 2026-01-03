@@ -1,4 +1,3 @@
-
 from routes.session_routes import session_bp
 from auto_migrate import auto_migrate
 from routes.pages_routes import pages_bp  # Import
@@ -16,6 +15,7 @@ if not os.environ.get("QB_ENVIRONMENT"):
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from db import db
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Try to load environment variables from .env file (optional, will override defaults above)
 try:
@@ -30,6 +30,9 @@ app = Flask(__name__,
             static_url_path="/",
             instance_path="/tmp/flask_instance")
 CORS(app)
+
+# Fix for HTTPS detection behind Railway proxy
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # Configure the database - PostgreSQL for Railway
 # Railway automatically provides DATABASE_URL when you add a PostgreSQL database
@@ -110,4 +113,3 @@ if __name__ == "__main__":
     auto_migrate()
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
-
