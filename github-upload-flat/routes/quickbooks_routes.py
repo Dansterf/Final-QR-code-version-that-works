@@ -1,11 +1,29 @@
-from flask import Blueprint, request, jsonify
+"""
+QuickBooks Routes - VERSION CORRIGÉE
+Handles QuickBooks OAuth flow and API calls with AUTOMATIC TOKEN REFRESH
+
+CHANGEMENTS PRINCIPAUX:
+- Utilise get_valid_token() au lieu de load_token_from_file()
+- Gestion automatique du rafraîchissement des jetons
+- Amélioration de la gestion des erreurs 401
+- Retry automatique après rafraîchissement
+"""
+
+from flask import Blueprint, request, jsonify, redirect
 import requests
 import os
 import json
 from datetime import datetime, timedelta
 from db import db
 from models.models import QuickBooksToken
-from utils.token_storage import save_token_to_file, load_token_from_file, delete_token_file, is_token_valid
+from utils.token_storage import (
+    save_token_to_file, 
+    load_token_from_file, 
+    delete_token_file, 
+    is_token_valid,
+    get_valid_token,  # NOUVEAU: Fonction qui rafraîchit automatiquement
+    refresh_access_token  # NOUVEAU: Pour rafraîchissement manuel si nécessaire
+)
 
 quickbooks_bp = Blueprint("quickbooks_bp", __name__)
 
@@ -26,7 +44,7 @@ else:
     QB_API_URL = "https://sandbox-quickbooks.api.intuit.com"
 
 def get_qb_token():
-    """Get the latest QuickBooks token from database"""
+    """Get the latest QuickBooks token from database (legacy function)"""
     return QuickBooksToken.query.order_by(QuickBooksToken.updated_at.desc()).first()
 
 def save_qb_token(access_token, refresh_token, realm_id, expires_in):
@@ -35,26 +53,102 @@ def save_qb_token(access_token, refresh_token, realm_id, expires_in):
         print(f"Saving token for realm {realm_id}")
         success = save_token_to_file(access_token, refresh_token, realm_id, expires_in)
         if success:
-            print(f"Token saved successfully for realm {realm_id}")
+            print(f"✓ Token saved successfully for realm {realm_id}")
             # Verify it was saved
             verify_token = load_token_from_file()
             if verify_token:
-                print(f"Verification: Token exists in file with realm {verify_token.get('realm_id')}")
+                print(f"✓ Verification: Token exists in file with realm {verify_token.get('realm_id')}")
             else:
-                print("WARNING: Token not found after save!")
+                print("✗ WARNING: Token not found after save!")
             return verify_token
         else:
             raise Exception("Failed to save token to file")
     except Exception as e:
-        print(f"ERROR saving token: {str(e)}")
+        print(f"✗ ERROR saving token: {str(e)}")
         raise
+
+def make_qb_api_call(endpoint, method="GET", data=None, token_data=None):
+    """
+    Make a QuickBooks API call with automatic token refresh on 401 errors
+    
+    Args:
+        endpoint (str): API endpoint (e.g., "/v3/company/{realmId}/invoice")
+        method (str): HTTP method (GET, POST, etc.)
+        data (dict): Request body for POST/PUT requests
+        token_data (dict): Token data (if None, will get valid token automatically)
+    
+    Returns:
+        tuple: (response_data, status_code) or (None, error_code)
+    """
+    # Get valid token (will refresh if needed)
+    if not token_data:
+        token_data = get_valid_token()
+    
+    if not token_data:
+        return {"error": "Not connected to QuickBooks"}, 401
+    
+    # Build full URL
+    url = f"{QB_API_URL}{endpoint}"
+    if "{realmId}" in url:
+        url = url.replace("{realmId}", token_data.get('realm_id'))
+    
+    headers = {
+        "Authorization": f"Bearer {token_data.get('access_token')}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        # Make API call
+        if method.upper() == "GET":
+            response = requests.get(url, headers=headers, timeout=10)
+        elif method.upper() == "POST":
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+        elif method.upper() == "PUT":
+            response = requests.put(url, headers=headers, json=data, timeout=10)
+        else:
+            return {"error": f"Unsupported HTTP method: {method}"}, 400
+        
+        # Handle 401 Unauthorized - token might be expired
+        if response.status_code == 401:
+            print("⚠ Received 401 Unauthorized. Attempting token refresh...")
+            
+            # Try to refresh token
+            new_token_data = refresh_access_token()
+            if new_token_data:
+                print("✓ Token refreshed. Retrying API call...")
+                # Retry the call with new token
+                headers["Authorization"] = f"Bearer {new_token_data.get('access_token')}"
+                
+                if method.upper() == "GET":
+                    response = requests.get(url, headers=headers, timeout=10)
+                elif method.upper() == "POST":
+                    response = requests.post(url, headers=headers, json=data, timeout=10)
+                elif method.upper() == "PUT":
+                    response = requests.put(url, headers=headers, json=data, timeout=10)
+                
+                if response.status_code in [200, 201]:
+                    print("✓ Retry successful after token refresh")
+            else:
+                print("✗ Token refresh failed. User must reconnect.")
+                return {"error": "Token expired and refresh failed. Please reconnect to QuickBooks."}, 401
+        
+        # Return response
+        if response.status_code in [200, 201]:
+            return response.json(), response.status_code
+        else:
+            return {"error": response.text}, response.status_code
+            
+    except requests.exceptions.Timeout:
+        return {"error": "QuickBooks API request timeout"}, 504
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 @quickbooks_bp.route("/connect", methods=["GET"])
 def connect_quickbooks():
     """Initiate QuickBooks OAuth flow"""
     # Get the current host from the request to build dynamic redirect URI
-    from flask import request as flask_request, redirect
-    current_host = flask_request.host
+    current_host = request.host
     
     # Use the public manus.space URL (replace wasmer.app with manus.space)
     if 'wasmer.app' in current_host:
@@ -68,8 +162,7 @@ def connect_quickbooks():
 @quickbooks_bp.route("/auth/redirect", methods=["GET"])
 def redirect_to_quickbooks():
     """Redirect directly to QuickBooks OAuth page"""
-    from flask import request as flask_request, redirect
-    current_host = flask_request.host
+    current_host = request.host
     
     # Use the public manus.space URL (replace wasmer.app with manus.space)
     if 'wasmer.app' in current_host:
@@ -118,8 +211,8 @@ def quickbooks_callback():
         
         if token_response.status_code == 200:
             tokens = token_response.json()
-            print(f"Received tokens from QuickBooks for realm {realm_id}")
-            # Save tokens to database instead of memory
+            print(f"✓ Received tokens from QuickBooks for realm {realm_id}")
+            # Save tokens to file
             try:
                 saved_token = save_qb_token(
                     access_token=tokens.get("access_token"),
@@ -127,9 +220,9 @@ def quickbooks_callback():
                     realm_id=realm_id,
                     expires_in=tokens.get("expires_in", 3600)
                 )
-                print(f"Token saved successfully for realm: {realm_id}")
+                print(f"✓ Token saved successfully for realm: {realm_id}")
             except Exception as save_error:
-                print(f"CRITICAL ERROR saving token: {str(save_error)}")
+                print(f"✗ CRITICAL ERROR saving token: {str(save_error)}")
                 return f"<html><body><h1>Error saving token</h1><p>{str(save_error)}</p></body></html>", 500
             
             return """
@@ -155,26 +248,22 @@ def quickbooks_callback():
 @quickbooks_bp.route("/status", methods=["GET"])
 def get_quickbooks_status():
     """Check QuickBooks connection status"""
-    token_data = load_token_from_file()
+    # Use get_valid_token which will refresh if needed
+    token_data = get_valid_token()
+    
     if token_data and token_data.get('access_token'):
-        if is_token_valid(token_data):
-            return jsonify({
-                "connected": True,  # ✅ AJOUTÉ
-                "status": "connected",
-                "message": "QuickBooks is connected and active",
-                "realm_id": token_data.get('realm_id'),
-                "environment": QB_ENVIRONMENT,
-                "company_name": "QuickBooks Company"  # ✅ AJOUTÉ
-            }), 200
-        else:
-            return jsonify({
-                "connected": False,  # ✅ AJOUTÉ
-                "status": "expired",
-                "message": "QuickBooks token expired. Please reconnect."
-            }), 200
+        return jsonify({
+            "connected": True,
+            "status": "connected",
+            "message": "QuickBooks is connected and active",
+            "realm_id": token_data.get('realm_id'),
+            "environment": QB_ENVIRONMENT,
+            "company_name": "QuickBooks Company",  # Could be fetched from QB API
+            "expires_at": token_data.get('expires_at')
+        }), 200
     else:
         return jsonify({
-            "connected": False,  # ✅ AJOUTÉ
+            "connected": False,
             "status": "disconnected",
             "message": "QuickBooks not connected. Please connect to QuickBooks Online."
         }), 200
@@ -188,13 +277,11 @@ def disconnect_quickbooks():
 @quickbooks_bp.route("/sync", methods=["POST"])
 def sync_quickbooks():
     """Sync check-in data to QuickBooks"""
-    token_data = load_token_from_file()
-    if not token_data or not token_data.get('access_token'):
-        return jsonify({"error": "Not connected to QuickBooks"}), 401
+    # Use get_valid_token which will refresh if needed
+    token_data = get_valid_token()
     
-    # Check if token is expired
-    if not is_token_valid(token_data):
-        return jsonify({"error": "QuickBooks token expired. Please reconnect."}), 401
+    if not token_data:
+        return jsonify({"error": "Not connected to QuickBooks"}), 401
     
     data = request.get_json()
     
@@ -213,10 +300,12 @@ def sync_quickbooks():
 
 @quickbooks_bp.route("/create-invoice", methods=["POST"])
 def create_invoice():
-    """Create an invoice in QuickBooks"""
-    token_data = load_token_from_file()
-    if not token_data or not token_data.get('access_token'):
-        return jsonify({"error": "Not connected to QuickBooks"}), 401
+    """Create an invoice in QuickBooks with automatic token refresh"""
+    # Use get_valid_token which will refresh if needed
+    token_data = get_valid_token()
+    
+    if not token_data:
+        return jsonify({"error": "Not connected to QuickBooks. Please reconnect."}), 401
     
     data = request.get_json()
     customer_name = data.get("customer_name")
@@ -226,45 +315,77 @@ def create_invoice():
     if not all([customer_name, amount, description]):
         return jsonify({"error": "Missing required fields"}), 400
     
-    try:
-        # Create invoice in QuickBooks
-        invoice_data = {
-            "Line": [{
-                "Amount": amount,
-                "DetailType": "SalesItemLineDetail",
-                "SalesItemLineDetail": {
-                    "ItemRef": {
-                        "value": "1",  # Default item, should be configured
-                        "name": "Services"
-                    }
-                },
-                "Description": description
-            }],
-            "CustomerRef": {
-                "value": "1"  # This should be looked up or created
-            }
-        }
-        
-        response = requests.post(
-            f"{QB_API_URL}/v3/company/{token_data.get('realm_id')}/invoice",
-            headers={
-                "Authorization": f"Bearer {token_data.get('access_token')}",
-                "Accept": "application/json",
-                "Content-Type": "application/json"
+    # Create invoice data
+    invoice_data = {
+        "Line": [{
+            "Amount": amount,
+            "DetailType": "SalesItemLineDetail",
+            "SalesItemLineDetail": {
+                "ItemRef": {
+                    "value": "1",  # Default item, should be configured
+                    "name": "Services"
+                }
             },
-            json=invoice_data
-        )
-        
-        if response.status_code in [200, 201]:
-            return jsonify({
-                "message": "Invoice created successfully",
-                "invoice": response.json()
-            }), 200
-        else:
-            return jsonify({
-                "error": "Failed to create invoice",
-                "details": response.text
-            }), response.status_code
-            
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+            "Description": description
+        }],
+        "CustomerRef": {
+            "value": "1"  # This should be looked up or created
+        }
+    }
+    
+    # Use the new make_qb_api_call function which handles refresh automatically
+    response_data, status_code = make_qb_api_call(
+        endpoint=f"/v3/company/{token_data.get('realm_id')}/invoice",
+        method="POST",
+        data=invoice_data,
+        token_data=token_data
+    )
+    
+    if status_code in [200, 201]:
+        return jsonify({
+            "message": "Invoice created successfully",
+            "invoice": response_data
+        }), 200
+    else:
+        return jsonify(response_data), status_code
+
+@quickbooks_bp.route("/test-refresh", methods=["GET"])
+def test_token_refresh():
+    """
+    Test endpoint to manually trigger token refresh
+    Useful for debugging and verification
+    """
+    print("\n" + "="*60)
+    print("MANUAL TOKEN REFRESH TEST")
+    print("="*60 + "\n")
+    
+    # Load current token
+    current_token = load_token_from_file()
+    if not current_token:
+        return jsonify({
+            "error": "No token found",
+            "message": "Please connect to QuickBooks first"
+        }), 404
+    
+    # Show current token info
+    print(f"Current token realm: {current_token.get('realm_id')}")
+    print(f"Expires at: {current_token.get('expires_at')}")
+    print(f"Is valid: {is_token_valid(current_token)}")
+    
+    # Try to refresh
+    new_token = refresh_access_token()
+    
+    if new_token:
+        return jsonify({
+            "success": True,
+            "message": "Token refreshed successfully",
+            "old_expires_at": current_token.get('expires_at'),
+            "new_expires_at": new_token.get('expires_at'),
+            "realm_id": new_token.get('realm_id')
+        }), 200
+    else:
+        return jsonify({
+            "success": False,
+            "message": "Token refresh failed",
+            "error": "Unable to refresh token. User may need to reconnect."
+        }), 500
