@@ -1,11 +1,11 @@
-""
-QuickBooks Token Storage Utilities - VERSION CORRIGÉE
+"""
+QuickBooks Token Storage Utilities - VERSION CORRIGEE
 Handles saving, loading, validating, and REFRESHING QuickBooks OAuth tokens
 
 CHANGEMENTS PRINCIPAUX:
-- Ajout de refresh_access_token() pour rafraîchir automatiquement les jetons
-- Ajout de get_valid_token() pour obtenir un jeton valide (rafraîchit si nécessaire)
-- Amélioration de la gestion des erreurs
+- Ajout de refresh_access_token() pour rafraichir automatiquement les jetons
+- Ajout de get_valid_token() pour obtenir un jeton valide (rafraichit si necessaire)
+- Amelioration de la gestion des erreurs
 """
 
 import json
@@ -56,11 +56,11 @@ def save_token_to_file(access_token, refresh_token, realm_id, expires_in):
         with open(TOKEN_FILE_PATH, 'w') as f:
             json.dump(token_data, f, indent=2)
         
-        print(f"✓ Token saved to file: {TOKEN_FILE_PATH}")
+        print(f"Token saved to file: {TOKEN_FILE_PATH}")
         return True
         
     except Exception as e:
-        print(f"✗ ERROR saving token to file: {str(e)}")
+        print(f"ERROR saving token to file: {str(e)}")
         return False
 
 def load_token_from_file():
@@ -78,11 +78,11 @@ def load_token_from_file():
         with open(TOKEN_FILE_PATH, 'r') as f:
             token_data = json.load(f)
         
-        print(f"✓ Token loaded from file for realm: {token_data.get('realm_id')}")
+        print(f"Token loaded from file for realm: {token_data.get('realm_id')}")
         return token_data
         
     except Exception as e:
-        print(f"✗ ERROR loading token from file: {str(e)}")
+        print(f"ERROR loading token from file: {str(e)}")
         return None
 
 def is_token_valid(token_data, buffer_minutes=10):
@@ -108,14 +108,14 @@ def is_token_valid(token_data, buffer_minutes=10):
         
         if is_valid:
             time_remaining = expires_at - now
-            print(f"✓ Token is valid. Expires in {time_remaining}")
+            print(f"Token is valid. Expires in {time_remaining}")
         else:
-            print(f"⚠ Token has expired or will expire soon (within {buffer_minutes} minutes)")
+            print(f"Token has expired or will expire soon (within {buffer_minutes} minutes)")
         
         return is_valid
         
     except Exception as e:
-        print(f"✗ ERROR checking token validity: {str(e)}")
+        print(f"ERROR checking token validity: {str(e)}")
         return False
 
 def refresh_access_token():
@@ -128,11 +128,11 @@ def refresh_access_token():
     Returns:
         dict: New token data if refresh was successful, None otherwise
     """
-    print("🔄 Attempting to refresh access token...")
+    print("Attempting to refresh access token...")
     
     token_data = load_token_from_file()
     if not token_data or not token_data.get('refresh_token'):
-        print("✗ No refresh token available. User must reconnect.")
+        print("No refresh token available. User must reconnect.")
         return None
     
     try:
@@ -153,7 +153,7 @@ def refresh_access_token():
         
         if response.status_code == 200:
             tokens = response.json()
-            print("✓ Successfully refreshed access token")
+            print("Successfully refreshed access token")
             
             # CRITICAL: Save BOTH the new access_token AND the new refresh_token
             # QuickBooks returns a NEW refresh_token with each refresh
@@ -167,18 +167,18 @@ def refresh_access_token():
             if success:
                 return load_token_from_file()
             else:
-                print("✗ Failed to save refreshed token")
+                print("Failed to save refreshed token")
                 return None
         else:
-            print(f"✗ Failed to refresh token. Status: {response.status_code}")
+            print(f"Failed to refresh token. Status: {response.status_code}")
             print(f"Response: {response.text}")
             return None
             
     except requests.exceptions.Timeout:
-        print("✗ Timeout while refreshing token")
+        print("Timeout while refreshing token")
         return None
     except Exception as e:
-        print(f"✗ ERROR refreshing token: {str(e)}")
+        print(f"ERROR refreshing token: {str(e)}")
         return None
 
 def get_valid_token():
@@ -186,7 +186,7 @@ def get_valid_token():
     Get a valid QuickBooks token, refreshing it automatically if needed
     
     This is the main function to use when you need a token for API calls.
-    It will automatically refresh the token if it's expired or about to expire.
+    It will automatically refresh the token if it is expired or about to expire.
     
     Returns:
         dict: Valid token data, or None if unable to get/refresh token
@@ -194,19 +194,19 @@ def get_valid_token():
     token_data = load_token_from_file()
     
     if not token_data:
-        print("✗ No token found. User must connect to QuickBooks.")
+        print("No token found. User must connect to QuickBooks.")
         return None
     
     # Check if token is valid (with 10-minute buffer)
     if not is_token_valid(token_data, buffer_minutes=10):
-        print("⚠ Token expired or expiring soon. Attempting refresh...")
+        print("Token expired or expiring soon. Attempting refresh...")
         token_data = refresh_access_token()
         
         if not token_data:
-            print("✗ Failed to refresh token. User must reconnect.")
+            print("Failed to refresh token. User must reconnect.")
             return None
         
-        print("✓ Token refreshed successfully")
+        print("Token refreshed successfully")
     
     return token_data
 
@@ -220,14 +220,14 @@ def delete_token_file():
     try:
         if os.path.exists(TOKEN_FILE_PATH):
             os.remove(TOKEN_FILE_PATH)
-            print(f"✓ Token file deleted: {TOKEN_FILE_PATH}")
+            print(f"Token file deleted: {TOKEN_FILE_PATH}")
             return True
         else:
             print(f"Token file not found (already deleted?): {TOKEN_FILE_PATH}")
             return True
         
     except Exception as e:
-        print(f"✗ ERROR deleting token file: {str(e)}")
+        print(f"ERROR deleting token file: {str(e)}")
         return False
 
 def get_token_info():
@@ -261,7 +261,7 @@ def test_token_refresh():
     # Load current token
     token_data = load_token_from_file()
     if not token_data:
-        print("✗ No token found. Please connect to QuickBooks first.")
+        print("No token found. Please connect to QuickBooks first.")
         return False
     
     print(f"Current token realm: {token_data.get('realm_id')}")
@@ -273,11 +273,11 @@ def test_token_refresh():
     valid_token = get_valid_token()
     
     if valid_token:
-        print("✓ Successfully obtained valid token")
+        print("Successfully obtained valid token")
         print(f"New expires at: {valid_token.get('expires_at')}")
         return True
     else:
-        print("✗ Failed to obtain valid token")
+        print("Failed to obtain valid token")
         return False
 
 if __name__ == "__main__":
