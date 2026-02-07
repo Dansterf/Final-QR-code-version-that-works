@@ -53,29 +53,26 @@ def send_email_with_generated_qr(to_email, customer_name, qr_code_data):
         # Plain text content
         text_content = f"""Dear {customer_name},
 
-Thank you for registering with Doulos Education Tutoring Program!
+Merci de vous être inscrit(e) au Programme de Tutorat Doulos Éducation !
 
-Your registration is complete and your unique QR code is attached to this email.
+Votre inscription est complète et votre code QR unique est joint à ce courriel.
 
-IMPORTANT: Please save the attached QR code image to your phone or print it out. You will need to show this QR code to check in for each tutoring session.
+IMPORTANT : Veuillez enregistrer l'image du code QR jointe sur votre téléphone ou l'imprimer. Vous devrez présenter ce code QR pour vous enregistrer à chaque séance de tutorat.
 
-How to use your QR code:
-1. Save the attached image to your phone's photo gallery
-2. When arriving for your session, scan the QR code with your phone's camera
-3. Your phone will open our check-in website automatically
-4. Click "Start Check-In" and scan your QR code again to complete check-in
-5. Or print the QR code and scan it at the check-in station
+Comment utiliser votre code QR :
+1. Enregistrez l'image jointe dans la galerie photo de votre téléphone
+2. À votre arrivée pour votre séance, scannez le code QR avec l'appareil photo de votre téléphone
+3. Votre téléphone ouvrira automatiquement notre site web d'enregistrement
+4. Cliquez sur « Commencer l'enregistrement » et scannez à nouveau votre code QR pour compléter l'enregistrement
+5. Ou imprimez le code QR et scannez-le à la station d'enregistrement
 
-Direct check-in link:
-{qr_url}
+Si vous avez des questions ou besoin d'assistance, n'hésitez pas à nous contacter.
 
-If you have any questions or need assistance, please do not hesitate to contact us.
-
-Best regards,
-The Doulos Education Team
+Cordialement,
+L'équipe Doulos Éducation
 
 ---
-This is an automated message. Please do not reply to this email.
+Ceci est un message automatisé. Veuillez ne pas répondre à ce courriel.
 """
         
         # Decode base64 to binary for Mailgun
