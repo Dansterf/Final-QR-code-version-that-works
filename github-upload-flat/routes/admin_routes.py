@@ -116,22 +116,41 @@ def delete_service(service_id):
 # Import predefined services
 @admin_bp.route('/services/import', methods=['POST'])
 def import_predefined_services():
-    """Import a predefined list of services"""
+    """
+    Import a predefined list of services
+    
+    MODIFIÉ: Noms mis à jour pour correspondre exactement aux services QuickBooks
+    Basé sur: ProductsServicesList_Doulos_Éducation_07_02_2026.csv
+    """
     try:
-        # Predefined services list
+        # Predefined services list - NOMS QUICKBOOKS EXACTS
         predefined_services = [
+            # Tutorat individuel (40$)
             {"name": "Individuel (En ligne)", "duration": 60, "price": 40.00},
-            {"name": "Individuel (En personne)", "duration": 60, "price": 40.00},
-            {"name": "Petit groupe (2-3) (En ligne)", "duration": 60, "price": 30.00},
-            {"name": "Petit groupe (2-3) (En personne)", "duration": 60, "price": 30.00},
-            {"name": "Groupe (4-5) (En ligne)", "duration": 60, "price": 21.00},
+            {"name": "Individuel (présentiel)", "duration": 60, "price": 40.00},  # MODIFIÉ: "En personne" → "présentiel"
+            
+            # Tutorat groupe (21$)
             {"name": "Groupe (4-5) (En personne)", "duration": 60, "price": 21.00},
-            {"name": "Grand groupe (6+) (En ligne)", "duration": 60, "price": 21.00},
             {"name": "Grand groupe (6+) (En personne)", "duration": 60, "price": 21.00},
-            {"name": "Piano", "duration": 30, "price": 27.00},
-            {"name": "Guitare", "duration": 30, "price": 27.00},
-            {"name": "Chant", "duration": 30, "price": 27.00},
-            {"name": "Batterie", "duration": 30, "price": 27.00},
+            {"name": "Groupe Français", "duration": 60, "price": 21.00},  # AJOUTÉ
+            {"name": "Groupe Mathématiques", "duration": 60, "price": 21.00},  # AJOUTÉ
+            {"name": "Groupe mathématiques et Français", "duration": 60, "price": 21.00},  # AJOUTÉ
+            
+            # Tutorat sous-groupe (27$)
+            {"name": "Sous groupe (Maths + Francais)", "duration": 60, "price": 27.00},  # AJOUTÉ
+            
+            # Musique (27$) - NOMS MODIFIÉS POUR CORRESPONDRE À QUICKBOOKS
+            {"name": "Cours de piano", "duration": 30, "price": 27.00},  # MODIFIÉ: "Piano" → "Cours de piano"
+            {"name": "Cours de Guitare", "duration": 30, "price": 27.00},  # MODIFIÉ: "Guitare" → "Cours de Guitare"
+            {"name": "Cours de chant", "duration": 30, "price": 27.00},  # MODIFIÉ: "Chant" → "Cours de chant"
+            {"name": "Cours de Batterie", "duration": 30, "price": 27.00},  # MODIFIÉ: "Batterie" → "Cours de Batterie"
+            
+            # Absences (21$)
+            {"name": "Absence Motivée", "duration": 60, "price": 21.00},  # AJOUTÉ
+            {"name": "Absence non motivée", "duration": 60, "price": 21.00},  # AJOUTÉ
+            
+            # Spéciaux (0$)
+            {"name": "Cours annulé", "duration": 60, "price": 0.00},  # AJOUTÉ
             {"name": "Heures", "duration": 60, "price": 0.00}
         ]
         
@@ -159,7 +178,8 @@ def import_predefined_services():
         return jsonify({
             "message": f"Import completed: {imported_count} services imported, {skipped_count} skipped (already exist)",
             "imported": imported_count,
-            "skipped": skipped_count
+            "skipped": skipped_count,
+            "note": "Service names updated to match QuickBooks exactly"
         }), 200
         
     except Exception as e:
