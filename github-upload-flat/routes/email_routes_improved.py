@@ -38,20 +38,17 @@ def send_email_with_generated_qr(to_email, customer_name, qr_code_data):
         return False, "Mailgun domain not configured"
     
     try:
-        # Point to homepage - student will click "Start Check-In" to scan
-        base_url = os.environ.get('BASE_URL', 'https://final-qr-code-version-that-works-production.up.railway.app')
-        qr_url = base_url
-        
-        # Generate QR code with homepage URL
-        print(f"[EMAIL] Generating QR code for URL: {qr_url}")
-        qr_base64 = generate_qr_code_base64(qr_url)
+        # ✅ FIX: Generate QR code with customer's unique ID instead of homepage URL
+        # This allows the scanner to look up the customer in the database
+        print(f"[EMAIL] Generating QR code with customer ID: {qr_code_data}")
+        qr_base64 = generate_qr_code_base64(qr_code_data)
         print(f"[EMAIL] QR code generated, base64 length: {len(qr_base64)}")
         
         # Mailgun API endpoint
         url = f"https://api.mailgun.net/v3/{mailgun_domain}/messages"
         
-        # Plain text content
-        text_content = f"""Dear {customer_name},
+        # Plain text content in French (without check-in link)
+        text_content = f"""Cher(ère) {customer_name},
 
 Merci de vous être inscrit(e) au Programme de Tutorat Doulos Éducation !
 
@@ -61,10 +58,9 @@ IMPORTANT : Veuillez enregistrer l'image du code QR jointe sur votre téléphone
 
 Comment utiliser votre code QR :
 1. Enregistrez l'image jointe dans la galerie photo de votre téléphone
-2. À votre arrivée pour votre séance, scannez le code QR avec l'appareil photo de votre téléphone
-3. Votre téléphone ouvrira automatiquement notre site web d'enregistrement
-4. Cliquez sur « Commencer l'enregistrement » et scannez à nouveau votre code QR pour compléter l'enregistrement
-5. Ou imprimez le code QR et scannez-le à la station d'enregistrement
+2. À votre arrivée pour votre séance, montrez le code QR au personnel
+3. Le personnel scannera votre code QR pour compléter l'enregistrement
+4. Ou imprimez le code QR et présentez-le à la station d'enregistrement
 
 Si vous avez des questions ou besoin d'assistance, n'hésitez pas à nous contacter.
 
@@ -80,13 +76,13 @@ Ceci est un message automatisé. Veuillez ne pas répondre à ce courriel.
         
         # Prepare multipart form data for Mailgun
         files = {
-            'attachment': (f"{customer_name.replace(' ', '_')}_QRCode.png", qr_image_binary, 'image/png')
+            'attachment': (f"{customer_name.replace(' ', '_')}_CodeQR.png", qr_image_binary, 'image/png')
         }
         
         data = {
             'from': from_email,
             'to': to_email,
-            'subject': 'Your QR Code for Doulos Education Tutoring',
+            'subject': 'Votre code QR pour Doulos Éducation',
             'text': text_content
         }
         
