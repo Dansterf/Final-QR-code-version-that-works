@@ -85,7 +85,7 @@ def load_token_from_file():
         print(f"ERROR loading token from file: {str(e)}")
         return None
 
-def is_token_valid(token_data, buffer_minutes=10):
+def is_token_valid(token_data, buffer_minutes=20):
     """
     Check if a token is still valid (not expired)
     
@@ -197,8 +197,8 @@ def get_valid_token():
         print("No token found. User must connect to QuickBooks.")
         return None
     
-    # Check if token is valid (with 10-minute buffer)
-    if not is_token_valid(token_data, buffer_minutes=10):
+    # Check if token is valid (with 20-minute buffer)
+    if not is_token_valid(token_data, buffer_minutes=20):
         print("Token expired or expiring soon. Attempting refresh...")
         token_data = refresh_access_token()
         
@@ -245,7 +245,7 @@ def get_token_info():
         "realm_id": token_data.get("realm_id"),
         "created_at": token_data.get("created_at"),
         "expires_at": token_data.get("expires_at"),
-        "is_valid": is_token_valid(token_data, buffer_minutes=10)
+        "is_valid": is_token_valid(token_data, buffer_minutes=20)
     }
 
 # Test function for debugging
