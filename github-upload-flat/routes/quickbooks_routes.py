@@ -1,5 +1,5 @@
 """
-QuickBooks Routes - VERSION CORRIGÉE
+QuickBooks Routes - VERSION AVEC NUMÉROS DE FACTURE AUTOMATIQUES
 Handles QuickBooks OAuth flow and API calls with AUTOMATIC TOKEN REFRESH
 
 CHANGEMENTS PRINCIPAUX:
@@ -7,6 +7,7 @@ CHANGEMENTS PRINCIPAUX:
 - Gestion automatique du rafraîchissement des jetons
 - Amélioration de la gestion des erreurs 401
 - Retry automatique après rafraîchissement
+- ✅ NOUVEAU: Génération automatique des numéros de facture
 """
 
 from flask import Blueprint, request, jsonify, redirect
@@ -144,6 +145,79 @@ def make_qb_api_call(endpoint, method="GET", data=None, token_data=None):
     except Exception as e:
         return {"error": str(e)}, 500
 
+def get_next_invoice_number(token_data):
+    """
+    Get the next available invoice number from QuickBooks
+    
+    Strategy:
+    1. Query the most recent invoice to get the last DocNumber
+    2. If numeric, increment by 1
+    3. If not found or not numeric, generate based on date/time
+    
+    Returns:
+        str: Next invoice number (e.g., "INV-1001" or "20260207-001")
+    """
+    try:
+        # Query for the most recent invoice
+        query = "SELECT * FROM Invoice ORDERBY DocNumber DESC MAXRESULTS 1"
+        endpoint = f"/v3/company/{token_data.get('realm_id')}/query?query={query}"
+        
+        response_data, status_code = make_qb_api_call(
+            endpoint=endpoint,
+            method="GET",
+            token_data=token_data
+        )
+        
+        if status_code == 200 and response_data.get('QueryResponse'):
+            invoices = response_data['QueryResponse'].get('Invoice', [])
+            
+            if invoices and len(invoices) > 0:
+                last_doc_number = invoices[0].get('DocNumber')
+                print(f"[INVOICE_NUMBER] Last invoice number: {last_doc_number}")
+                
+                # Try to extract numeric part and increment
+                if last_doc_number:
+                    # Try different formats
+                    # Format 1: Pure number (e.g., "1001")
+                    if last_doc_number.isdigit():
+                        next_number = int(last_doc_number) + 1
+                        return str(next_number)
+                    
+                    # Format 2: Prefix with dash (e.g., "INV-1001")
+                    if '-' in last_doc_number:
+                        parts = last_doc_number.split('-')
+                        if len(parts) == 2 and parts[1].isdigit():
+                            prefix = parts[0]
+                            next_number = int(parts[1]) + 1
+                            return f"{prefix}-{next_number}"
+                    
+                    # Format 3: Try to find any number at the end
+                    import re
+                    match = re.search(r'(\d+)$', last_doc_number)
+                    if match:
+                        number_part = match.group(1)
+                        prefix = last_doc_number[:match.start()]
+                        next_number = int(number_part) + 1
+                        # Preserve leading zeros
+                        formatted_number = str(next_number).zfill(len(number_part))
+                        return f"{prefix}{formatted_number}"
+        
+        # Fallback: Generate based on date/time
+        now = datetime.now()
+        date_prefix = now.strftime("%Y%m%d")
+        time_suffix = now.strftime("%H%M%S")
+        invoice_number = f"{date_prefix}-{time_suffix}"
+        print(f"[INVOICE_NUMBER] Generated fallback number: {invoice_number}")
+        return invoice_number
+        
+    except Exception as e:
+        print(f"[INVOICE_NUMBER] Error getting next invoice number: {str(e)}")
+        # Fallback: Generate based on timestamp
+        now = datetime.now()
+        invoice_number = now.strftime("%Y%m%d-%H%M%S")
+        print(f"[INVOICE_NUMBER] Using timestamp fallback: {invoice_number}")
+        return invoice_number
+
 @quickbooks_bp.route("/connect", methods=["GET"])
 def connect_quickbooks():
     """Initiate QuickBooks OAuth flow"""
@@ -259,7 +333,6 @@ def get_quickbooks_status():
             "realm_id": token_data.get('realm_id'),
             "environment": QB_ENVIRONMENT,
             "company_name": "QuickBooks Company",  # Could be fetched from QB API
-            "expires_at": token_data.get('expires_at')
         }), 200
     else:
         return jsonify({
@@ -300,7 +373,11 @@ def sync_quickbooks():
 
 @quickbooks_bp.route("/create-invoice", methods=["POST"])
 def create_invoice():
-    """Create an invoice in QuickBooks with automatic token refresh"""
+    """
+    Create an invoice in QuickBooks with automatic token refresh and invoice numbering
+    
+    ✅ NOUVEAU: Génère automatiquement un numéro de facture unique
+    """
     # Use get_valid_token which will refresh if needed
     token_data = get_valid_token()
     
@@ -315,8 +392,13 @@ def create_invoice():
     if not all([customer_name, amount, description]):
         return jsonify({"error": "Missing required fields"}), 400
     
-    # Create invoice data
+    # ✅ NOUVEAU: Générer le numéro de facture automatiquement
+    invoice_number = get_next_invoice_number(token_data)
+    print(f"[QUICKBOOKS] Creating invoice with DocNumber: {invoice_number}")
+    
+    # Create invoice data with DocNumber
     invoice_data = {
+        "DocNumber": invoice_number,  # ✅ AJOUTÉ: Numéro de facture automatique
         "Line": [{
             "Amount": amount,
             "DetailType": "SalesItemLineDetail",
@@ -342,11 +424,17 @@ def create_invoice():
     )
     
     if status_code in [200, 201]:
+        created_invoice = response_data.get('Invoice', {})
+        doc_number = created_invoice.get('DocNumber', invoice_number)
+        print(f"[QUICKBOOKS] ✓ Invoice created successfully with DocNumber: {doc_number}")
+        
         return jsonify({
-            "message": "Invoice created successfully",
+            "message": f"Invoice created successfully with number: {doc_number}",
+            "invoice_number": doc_number,
             "invoice": response_data
         }), 200
     else:
+        print(f"[QUICKBOOKS] ✗ Error creating invoice: {response_data}")
         return jsonify(response_data), status_code
 
 @quickbooks_bp.route("/test-refresh", methods=["GET"])
@@ -389,3 +477,21 @@ def test_token_refresh():
             "message": "Token refresh failed",
             "error": "Unable to refresh token. User may need to reconnect."
         }), 500
+
+@quickbooks_bp.route("/test-invoice-number", methods=["GET"])
+def test_invoice_number():
+    """
+    Test endpoint to see what the next invoice number would be
+    Useful for debugging invoice numbering
+    """
+    token_data = get_valid_token()
+    
+    if not token_data:
+        return jsonify({"error": "Not connected to QuickBooks"}), 401
+    
+    next_number = get_next_invoice_number(token_data)
+    
+    return jsonify({
+        "next_invoice_number": next_number,
+        "message": f"Next invoice will be numbered: {next_number}"
+    }), 200
