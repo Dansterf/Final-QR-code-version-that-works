@@ -5,6 +5,7 @@ from datetime import datetime
 import requests
 import os
 from utils.token_storage import load_token_from_file, is_token_valid
+from urllib.parse import urlparse, parse_qs
 
 checkin_bp = Blueprint("checkin_bp", __name__)
 
@@ -14,6 +15,52 @@ if QB_ENVIRONMENT == "production":
     QB_API_URL = "https://quickbooks.api.intuit.com"
 else:
     QB_API_URL = "https://sandbox-quickbooks.api.intuit.com"
+
+def extract_qr_code_from_value(qr_value):
+    """
+    Extract the actual QR code UUID from various possible formats
+    
+    Handles:
+    1. Direct UUID: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    2. URL with qr parameter: "https://domain.com/checkin?qr=a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    3. Just the qr parameter: "qr=a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    
+    Returns:
+        str: The extracted UUID
+    """
+    if not qr_value:
+        return None
+    
+    # If it's already a clean UUID (no URL parts), return as-is
+    if '://' not in qr_value and '=' not in qr_value:
+        print(f"[QR_EXTRACT] Direct UUID detected: {qr_value}")
+        return qr_value
+    
+    # If it contains a URL, parse it
+    if '://' in qr_value:
+        try:
+            parsed = urlparse(qr_value)
+            query_params = parse_qs(parsed.query)
+            
+            if 'qr' in query_params:
+                extracted = query_params['qr'][0]
+                print(f"[QR_EXTRACT] Extracted from URL: {qr_value} → {extracted}")
+                return extracted
+        except Exception as e:
+            print(f"[QR_EXTRACT] Error parsing URL: {str(e)}")
+    
+    # If it's in format "qr=value"
+    if '=' in qr_value and 'qr=' in qr_value:
+        try:
+            extracted = qr_value.split('qr=')[1].split('&')[0]
+            print(f"[QR_EXTRACT] Extracted from parameter: {qr_value} → {extracted}")
+            return extracted
+        except Exception as e:
+            print(f"[QR_EXTRACT] Error parsing parameter: {str(e)}")
+    
+    # Fallback: return original value
+    print(f"[QR_EXTRACT] No extraction needed, using original: {qr_value}")
+    return qr_value
 
 def create_or_update_monthly_invoice(customer, session_type, checkin_id, checkin_date):
     """Create a new invoice or update existing monthly invoice for a customer"""
@@ -415,6 +462,11 @@ def get_checkins():
 
 @checkin_bp.route("/", methods=["POST"])
 def create_checkin():
+    """
+    Create a check-in for a customer
+    
+    ✅ FIXED: Now extracts QR code UUID from URL if needed
+    """
     data = request.get_json()
     qrCodeValue = data.get("qrCodeValue")
     sessionTypeId = data.get("sessionTypeId")
@@ -423,9 +475,25 @@ def create_checkin():
     if not all([qrCodeValue, sessionTypeId]):
         return jsonify({"error": "Missing required fields"}), 400
 
-    customer = Customer.query.filter_by(qr_code_data=qrCodeValue).first()
+    # ✅ NOUVEAU: Extract the actual UUID from the QR code value
+    # Handles both direct UUID and URL formats
+    extracted_qr_code = extract_qr_code_from_value(qrCodeValue)
+    
+    print(f"[CHECK-IN] Original QR value: {qrCodeValue}")
+    print(f"[CHECK-IN] Extracted QR code: {extracted_qr_code}")
+
+    # Look up customer using the extracted QR code
+    customer = Customer.query.filter_by(qr_code_data=extracted_qr_code).first()
     if not customer:
-        return jsonify({"error": "Customer not found for this QR code"}), 404
+        print(f"[CHECK-IN] ✗ Customer not found with QR code: {extracted_qr_code}")
+        print(f"[CHECK-IN] ✗ Original value was: {qrCodeValue}")
+        return jsonify({
+            "error": "Customer not found with this QR code",
+            "qr_value_received": qrCodeValue,
+            "qr_value_searched": extracted_qr_code
+        }), 404
+
+    print(f"[CHECK-IN] ✓ Customer found: {customer.firstName} {customer.lastName} (ID: {customer.id})")
 
     session_type = SessionType.query.get(sessionTypeId)
     if not session_type:
@@ -450,6 +518,7 @@ def create_checkin():
         "checkin": {
             "id": new_checkin.id,
             "customer_id": new_checkin.customer_id,
+            "customer_name": f"{customer.firstName} {customer.lastName}",
             "session_type": new_checkin.session_type,
             "check_in_time": new_checkin.check_in_time.isoformat(),
             "notes": new_checkin.notes
