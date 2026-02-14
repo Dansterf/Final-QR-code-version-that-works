@@ -495,39 +495,41 @@ def get_checkins():
             query = query.filter_by(customer_id=customer_id)
         
         if session_type_id:
-            query = query.filter_by(session_type_id=session_type_id)
+            # session_type is stored as string name, need to get the name from ID
+            st = SessionType.query.get(session_type_id)
+            if st:
+                query = query.filter_by(session_type=st.name)
         
         if start_date:
             try:
                 start = datetime.strptime(start_date, "%Y-%m-%d")
-                query = query.filter(CheckIn.checkin_date >= start)
+                query = query.filter(CheckIn.check_in_time >= start)
             except ValueError:
                 pass
         
         if end_date:
             try:
                 end = datetime.strptime(end_date, "%Y-%m-%d")
-                query = query.filter(CheckIn.checkin_date <= end)
+                query = query.filter(CheckIn.check_in_time <= end)
             except ValueError:
                 pass
         
         # Order by most recent first
-        checkins = query.order_by(CheckIn.checkin_date.desc()).all()
+        checkins = query.order_by(CheckIn.check_in_time.desc()).all()
         
         # Format response
         result = []
         for checkin in checkins:
             customer = Customer.query.get(checkin.customer_id)
-            session_type = SessionType.query.get(checkin.session_type_id)
             
             result.append({
                 "id": checkin.id,
                 "customer_id": checkin.customer_id,
                 "customer_name": f"{customer.firstName} {customer.lastName}" if customer else "Unknown",
-                "session_type_id": checkin.session_type_id,
-                "session_type": session_type.name if session_type else "Unknown",
-                "checkin_date": checkin.checkin_date.isoformat(),
-                "notes": checkin.notes
+                "session_type": checkin.session_type,  # session_type is stored as string
+                "checkin_date": checkin.check_in_time.isoformat(),
+                "notes": checkin.notes,
+                "qb_invoice_id": checkin.qb_invoice_id
             })
         
         return jsonify(result), 200
@@ -578,18 +580,18 @@ def create_checkin():
     # Create check-in
     checkin = CheckIn(
         customer_id=customer.id,
-        session_type_id=sessionTypeId,
-        checkin_date=datetime.now(),
+        session_type=session_type.name,  # Store session type name, not ID
+        check_in_time=datetime.now(),
         notes=notes
     )
     
     db.session.add(checkin)
     db.session.commit()
     
-    print(f"[CHECK-IN] Check-in successful for {customer.firstName} {customer.lastName} on {checkin.checkin_date.strftime('%Y-%m-%d')}")
+    print(f"[CHECK-IN] Check-in successful for {customer.firstName} {customer.lastName} on {checkin.check_in_time.strftime('%Y-%m-%d')}")
     
     # Create or update QuickBooks invoice
-    invoice_id = create_or_update_monthly_invoice(customer, session_type, checkin.id, checkin.checkin_date)
+    invoice_id = create_or_update_monthly_invoice(customer, session_type, checkin.id, checkin.check_in_time)
     
     if invoice_id:
         print(f"[CHECK-IN] ✓ QuickBooks invoice processed: {invoice_id}")
@@ -602,7 +604,7 @@ def create_checkin():
             "id": checkin.id,
             "customer_name": f"{customer.firstName} {customer.lastName}",
             "session_type": session_type.name,
-            "checkin_date": checkin.checkin_date.isoformat(),
+            "checkin_date": checkin.check_in_time.isoformat(),
             "notes": checkin.notes,
             "quickbooks_invoice_id": invoice_id
         }
