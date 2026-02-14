@@ -4,6 +4,7 @@ from models.models import CheckIn, Customer, SessionType
 from datetime import datetime
 import requests
 import os
+import re
 from utils.token_storage import load_token_from_file, is_token_valid
 from urllib.parse import urlparse, parse_qs
 
@@ -61,6 +62,89 @@ def extract_qr_code_from_value(qr_value):
     # Fallback: return original value
     print(f"[QR_EXTRACT] No extraction needed, using original: {qr_value}")
     return qr_value
+
+def get_next_invoice_number(access_token, realm_id):
+    """
+    Get the next available invoice number from QuickBooks
+    
+    ✅ NOUVEAU: Génère automatiquement un numéro de facture unique
+    
+    Strategy:
+    1. Query the most recent invoice to get the last DocNumber
+    2. If numeric, increment by 1
+    3. If not found or not numeric, generate based on date/time
+    
+    Returns:
+        str: Next invoice number (e.g., "1001" or "INV-1001" or "20260214-001")
+    """
+    try:
+        # Query for the most recent invoice
+        query = "SELECT * FROM Invoice ORDERBY DocNumber DESC MAXRESULTS 1"
+        
+        print(f"[INVOICE_NUMBER] Querying QuickBooks for last invoice number...")
+        
+        response = requests.get(
+            f"{QB_API_URL}/v3/company/{realm_id}/query",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/json"
+            },
+            params={"query": query}
+        )
+        
+        if response.status_code == 200:
+            query_response = response.json().get('QueryResponse', {})
+            invoices = query_response.get('Invoice', [])
+            
+            if invoices and len(invoices) > 0:
+                last_doc_number = invoices[0].get('DocNumber')
+                print(f"[INVOICE_NUMBER] Last invoice number found: {last_doc_number}")
+                
+                # Try to extract numeric part and increment
+                if last_doc_number:
+                    # Format 1: Pure number (e.g., "1001")
+                    if last_doc_number.isdigit():
+                        next_number = int(last_doc_number) + 1
+                        print(f"[INVOICE_NUMBER] Generated next number: {next_number}")
+                        return str(next_number)
+                    
+                    # Format 2: Prefix with dash (e.g., "INV-1001")
+                    if '-' in last_doc_number:
+                        parts = last_doc_number.split('-')
+                        if len(parts) >= 2 and parts[-1].isdigit():
+                            prefix = '-'.join(parts[:-1])
+                            next_number = int(parts[-1]) + 1
+                            result = f"{prefix}-{next_number}"
+                            print(f"[INVOICE_NUMBER] Generated next number: {result}")
+                            return result
+                    
+                    # Format 3: Try to find any number at the end
+                    match = re.search(r'(\d+)$', last_doc_number)
+                    if match:
+                        number_part = match.group(1)
+                        prefix = last_doc_number[:match.start()]
+                        next_number = int(number_part) + 1
+                        # Preserve leading zeros
+                        formatted_number = str(next_number).zfill(len(number_part))
+                        result = f"{prefix}{formatted_number}"
+                        print(f"[INVOICE_NUMBER] Generated next number: {result}")
+                        return result
+        
+        # Fallback: Generate based on date/time
+        now = datetime.now()
+        date_prefix = now.strftime("%Y%m%d")
+        time_suffix = now.strftime("%H%M%S")
+        invoice_number = f"{date_prefix}-{time_suffix}"
+        print(f"[INVOICE_NUMBER] Generated fallback number: {invoice_number}")
+        return invoice_number
+        
+    except Exception as e:
+        print(f"[INVOICE_NUMBER] Error getting next invoice number: {str(e)}")
+        # Fallback: Generate based on timestamp
+        now = datetime.now()
+        invoice_number = now.strftime("%Y%m%d-%H%M%S")
+        print(f"[INVOICE_NUMBER] Using timestamp fallback: {invoice_number}")
+        return invoice_number
 
 def create_or_update_monthly_invoice(customer, session_type, checkin_id, checkin_date):
     """Create a new invoice or update existing monthly invoice for a customer"""
@@ -215,9 +299,18 @@ def add_line_to_invoice(existing_invoice, item_ref, session_type, checkin_id, ac
         return None
 
 def create_new_invoice(customer_ref, item_ref, session_type, checkin_id, checkin_date, access_token, realm_id):
-    """Create a new invoice"""
+    """
+    Create a new invoice
+    
+    ✅ NOUVEAU: Génère automatiquement un numéro de facture unique
+    """
     try:
+        # ✅ NOUVEAU: Générer le numéro de facture automatiquement
+        invoice_number = get_next_invoice_number(access_token, realm_id)
+        print(f"[QUICKBOOKS] Creating invoice with DocNumber: {invoice_number}")
+        
         invoice_data = {
+            "DocNumber": invoice_number,  # ✅ AJOUTÉ: Numéro de facture automatique
             "Line": [{
                 "Amount": float(session_type.price),
                 "DetailType": "SalesItemLineDetail",
@@ -248,7 +341,8 @@ def create_new_invoice(customer_ref, item_ref, session_type, checkin_id, checkin
         if response.status_code in [200, 201]:
             invoice = response.json().get("Invoice", {})
             invoice_id = invoice.get("Id")
-            print(f"[QUICKBOOKS] ✓ New invoice created successfully! ID: {invoice_id}")
+            doc_number = invoice.get("DocNumber", invoice_number)
+            print(f"[QUICKBOOKS] ✓ New invoice created successfully! ID: {invoice_id}, DocNumber: {doc_number}")
             return invoice_id
         else:
             print(f"[QUICKBOOKS] Failed to create invoice: {response.status_code} - {response.text}")
@@ -259,13 +353,14 @@ def create_new_invoice(customer_ref, item_ref, session_type, checkin_id, checkin
         return None
 
 def find_or_create_qb_customer(customer, access_token, realm_id):
-    """Find or create a customer in QuickBooks"""
+    """Find existing customer in QuickBooks or create new one"""
     try:
         # Search for existing customer by display name
-        display_name = f"{customer.firstName} {customer.lastName}"
+        customer_name = f"{customer.firstName} {customer.lastName}"
+        query = f"SELECT * FROM Customer WHERE DisplayName = '{customer_name}'"
         
-        # Query for existing customer
-        query = f"SELECT * FROM Customer WHERE DisplayName = '{display_name}'"
+        print(f"[QUICKBOOKS] Searching for customer: {customer_name}")
+        
         response = requests.get(
             f"{QB_API_URL}/v3/company/{realm_id}/query",
             headers={
@@ -280,28 +375,25 @@ def find_or_create_qb_customer(customer, access_token, realm_id):
             customers = query_response.get("Customer", [])
             
             if customers:
-                # Customer exists
                 customer_id = customers[0].get("Id")
-                print(f"[QUICKBOOKS] Found existing customer: {display_name} (ID: {customer_id})")
-                return {"value": customer_id, "name": display_name}
+                print(f"[QUICKBOOKS] Found existing customer: {customer_name} (ID: {customer_id})")
+                return {"value": customer_id, "name": customer_name}
         
-        # Customer doesn't exist, create new one
-        print(f"[QUICKBOOKS] Creating new customer: {display_name}")
+        # Customer not found, create new one
+        print(f"[QUICKBOOKS] Customer not found, creating new: {customer_name}")
+        
         customer_data = {
-            "DisplayName": display_name,
+            "DisplayName": customer_name,
             "GivenName": customer.firstName,
             "FamilyName": customer.lastName,
-            "PrimaryEmailAddr": {
-                "Address": customer.email
-            }
+            "PrimaryEmailAddr": {"Address": customer.email} if customer.email else None,
+            "PrimaryPhone": {"FreeFormNumber": customer.phone} if customer.phone else None
         }
         
-        if customer.phone:
-            customer_data["PrimaryPhone"] = {
-                "FreeFormNumber": customer.phone
-            }
+        # Remove None values
+        customer_data = {k: v for k, v in customer_data.items() if v is not None}
         
-        create_response = requests.post(
+        response = requests.post(
             f"{QB_API_URL}/v3/company/{realm_id}/customer",
             headers={
                 "Authorization": f"Bearer {access_token}",
@@ -311,13 +403,13 @@ def find_or_create_qb_customer(customer, access_token, realm_id):
             json=customer_data
         )
         
-        if create_response.status_code in [200, 201]:
-            new_customer = create_response.json().get("Customer", {})
+        if response.status_code in [200, 201]:
+            new_customer = response.json().get("Customer", {})
             customer_id = new_customer.get("Id")
-            print(f"[QUICKBOOKS] ✓ Customer created: {display_name} (ID: {customer_id})")
-            return {"value": customer_id, "name": display_name}
+            print(f"[QUICKBOOKS] ✓ Customer created: {customer_name} (ID: {customer_id})")
+            return {"value": customer_id, "name": customer_name}
         else:
-            print(f"[QUICKBOOKS] Failed to create customer: {create_response.text}")
+            print(f"[QUICKBOOKS] Failed to create customer: {response.status_code} - {response.text}")
             return None
             
     except Exception as e:
@@ -325,13 +417,14 @@ def find_or_create_qb_customer(customer, access_token, realm_id):
         return None
 
 def find_or_create_qb_item(session_type, access_token, realm_id):
-    """Find or create a service item in QuickBooks"""
+    """Find existing service item in QuickBooks or create new one"""
     try:
         # Search for existing item by name
         item_name = session_type.name
-        
-        # Query for existing item
         query = f"SELECT * FROM Item WHERE Name = '{item_name}'"
+        
+        print(f"[QUICKBOOKS] Searching for item: {item_name}")
+        
         response = requests.get(
             f"{QB_API_URL}/v3/company/{realm_id}/query",
             headers={
@@ -346,41 +439,23 @@ def find_or_create_qb_item(session_type, access_token, realm_id):
             items = query_response.get("Item", [])
             
             if items:
-                # Item exists
                 item_id = items[0].get("Id")
                 print(f"[QUICKBOOKS] Found existing item: {item_name} (ID: {item_id})")
                 return {"value": item_id, "name": item_name}
         
-        # Item doesn't exist, create new one
-        print(f"[QUICKBOOKS] Creating new service item: {item_name}")
-        
-        # First, get the income account (we'll use the default one)
-        account_query = "SELECT * FROM Account WHERE AccountType = 'Income' MAXRESULTS 1"
-        account_response = requests.get(
-            f"{QB_API_URL}/v3/company/{realm_id}/query",
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/json"
-            },
-            params={"query": account_query}
-        )
-        
-        income_account_id = "1"  # Default
-        if account_response.status_code == 200:
-            accounts = account_response.json().get("QueryResponse", {}).get("Account", [])
-            if accounts:
-                income_account_id = accounts[0].get("Id")
+        # Item not found, create new one
+        print(f"[QUICKBOOKS] Item not found, creating new: {item_name}")
         
         item_data = {
             "Name": item_name,
             "Type": "Service",
             "IncomeAccountRef": {
-                "value": income_account_id
+                "value": "1"  # Default income account - should be configured
             },
             "UnitPrice": float(session_type.price)
         }
         
-        create_response = requests.post(
+        response = requests.post(
             f"{QB_API_URL}/v3/company/{realm_id}/item",
             headers={
                 "Authorization": f"Bearer {access_token}",
@@ -390,13 +465,13 @@ def find_or_create_qb_item(session_type, access_token, realm_id):
             json=item_data
         )
         
-        if create_response.status_code in [200, 201]:
-            new_item = create_response.json().get("Item", {})
+        if response.status_code in [200, 201]:
+            new_item = response.json().get("Item", {})
             item_id = new_item.get("Id")
-            print(f"[QUICKBOOKS] ✓ Service item created: {item_name} (ID: {item_id})")
+            print(f"[QUICKBOOKS] ✓ Item created: {item_name} (ID: {item_id})")
             return {"value": item_id, "name": item_name}
         else:
-            print(f"[QUICKBOOKS] Failed to create item: {create_response.text}")
+            print(f"[QUICKBOOKS] Failed to create item: {response.status_code} - {response.text}")
             return None
             
     except Exception as e:
@@ -405,59 +480,59 @@ def find_or_create_qb_item(session_type, access_token, realm_id):
 
 @checkin_bp.route("/", methods=["GET"])
 def get_checkins():
-    """Get all check-ins with optional filters"""
+    """Get all check-ins with customer and session type details"""
     try:
-        # Get query parameters
-        customer_name = request.args.get('customer_name')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        service_type = request.args.get('service_type')
+        # Get query parameters for filtering
+        customer_id = request.args.get("customer_id")
+        session_type_id = request.args.get("session_type_id")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
         
-        # Base query
-        query = db.session.query(CheckIn).join(Customer)
+        # Build query
+        query = CheckIn.query
         
-        # Apply filters
-        if customer_name:
-            query = query.filter(
-                (Customer.firstName.ilike(f'%{customer_name}%')) |
-                (Customer.lastName.ilike(f'%{customer_name}%'))
-            )
+        if customer_id:
+            query = query.filter_by(customer_id=customer_id)
+        
+        if session_type_id:
+            query = query.filter_by(session_type_id=session_type_id)
         
         if start_date:
-            query = query.filter(CheckIn.check_in_time >= start_date)
+            try:
+                start = datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(CheckIn.checkin_date >= start)
+            except ValueError:
+                pass
         
         if end_date:
-            query = query.filter(CheckIn.check_in_time <= end_date)
-        
-        if service_type:
-            query = query.filter(CheckIn.session_type == service_type)
+            try:
+                end = datetime.strptime(end_date, "%Y-%m-%d")
+                query = query.filter(CheckIn.checkin_date <= end)
+            except ValueError:
+                pass
         
         # Order by most recent first
-        checkins = query.order_by(CheckIn.check_in_time.desc()).all()
+        checkins = query.order_by(CheckIn.checkin_date.desc()).all()
         
         # Format response
         result = []
         for checkin in checkins:
             customer = Customer.query.get(checkin.customer_id)
-            if customer:
-                # Get price from SessionType
-                session_type_obj = SessionType.query.filter_by(name=checkin.session_type).first()
-                price = float(session_type_obj.price) if session_type_obj else 0.0
-                
-                result.append({
-                    'id': checkin.id,
-                    'customer_name': f"{customer.firstName} {customer.lastName}",
-                    'customer_email': customer.email,
-                    'session_type_name': checkin.session_type,
-                    'price': price,
-                    'check_in_time': checkin.check_in_time.isoformat(),
-                    'notes': checkin.notes
-                })
+            session_type = SessionType.query.get(checkin.session_type_id)
+            
+            result.append({
+                "id": checkin.id,
+                "customer_id": checkin.customer_id,
+                "customer_name": f"{customer.firstName} {customer.lastName}" if customer else "Unknown",
+                "session_type_id": checkin.session_type_id,
+                "session_type": session_type.name if session_type else "Unknown",
+                "checkin_date": checkin.checkin_date.isoformat(),
+                "notes": checkin.notes
+            })
         
         return jsonify(result), 200
         
     except Exception as e:
-        print(f"[ERROR] Failed to get check-ins: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @checkin_bp.route("/", methods=["POST"])
@@ -484,6 +559,7 @@ def create_checkin():
 
     # Look up customer using the extracted QR code
     customer = Customer.query.filter_by(qr_code_data=extracted_qr_code).first()
+    
     if not customer:
         print(f"[CHECK-IN] ✗ Customer not found with QR code: {extracted_qr_code}")
         print(f"[CHECK-IN] ✗ Original value was: {qrCodeValue}")
@@ -494,43 +570,40 @@ def create_checkin():
         }), 404
 
     print(f"[CHECK-IN] ✓ Customer found: {customer.firstName} {customer.lastName} (ID: {customer.id})")
-
+    
     session_type = SessionType.query.get(sessionTypeId)
     if not session_type:
         return jsonify({"error": "Session type not found"}), 404
 
-    checkin_time = datetime.utcnow()
-    new_checkin = CheckIn(
+    # Create check-in
+    checkin = CheckIn(
         customer_id=customer.id,
-        session_type=session_type.name,
-        notes=notes,
-        check_in_time=checkin_time
+        session_type_id=sessionTypeId,
+        checkin_date=datetime.now(),
+        notes=notes
     )
-    db.session.add(new_checkin)
+    
+    db.session.add(checkin)
     db.session.commit()
     
-    # Create or update QuickBooks invoice (monthly grouping)
-    print(f"[CHECK-IN] Check-in successful for {customer.firstName} {customer.lastName} on {checkin_time.strftime('%Y-%m-%d')}")
-    invoice_id = create_or_update_monthly_invoice(customer, session_type, new_checkin.id, checkin_time)
+    print(f"[CHECK-IN] Check-in successful for {customer.firstName} {customer.lastName} on {checkin.checkin_date.strftime('%Y-%m-%d')}")
     
-    response_data = {
-        "message": "Check-in successful",
-        "checkin": {
-            "id": new_checkin.id,
-            "customer_id": new_checkin.customer_id,
-            "customer_name": f"{customer.firstName} {customer.lastName}",
-            "session_type": new_checkin.session_type,
-            "check_in_time": new_checkin.check_in_time.isoformat(),
-            "notes": new_checkin.notes
-        }
-    }
+    # Create or update QuickBooks invoice
+    invoice_id = create_or_update_monthly_invoice(customer, session_type, checkin.id, checkin.checkin_date)
     
     if invoice_id:
-        response_data["quickbooks_invoice_id"] = invoice_id
-        response_data["message"] = "Check-in successful and invoice created/updated in QuickBooks"
         print(f"[CHECK-IN] ✓ QuickBooks invoice processed: {invoice_id}")
     else:
-        response_data["message"] = "Check-in successful (QuickBooks invoice not created - check connection)"
-        print("[CHECK-IN] ⚠ QuickBooks invoice not created")
+        print(f"[CHECK-IN] ⚠ QuickBooks invoice not created (may not be connected)")
 
-    return jsonify(response_data), 201
+    return jsonify({
+        "message": "Check-in successful",
+        "checkin": {
+            "id": checkin.id,
+            "customer_name": f"{customer.firstName} {customer.lastName}",
+            "session_type": session_type.name,
+            "checkin_date": checkin.checkin_date.isoformat(),
+            "notes": checkin.notes,
+            "quickbooks_invoice_id": invoice_id
+        }
+    }), 201
