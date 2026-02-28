@@ -5,7 +5,7 @@ from datetime import datetime
 import requests
 import os
 import re
-from utils.token_storage import load_token_from_file, is_token_valid
+from utils.token_storage import load_token_from_file, is_token_valid, get_valid_token
 from urllib.parse import urlparse, parse_qs
 
 checkin_bp = Blueprint("checkin_bp", __name__)
@@ -149,18 +149,18 @@ def get_next_invoice_number(access_token, realm_id):
 def create_or_update_monthly_invoice(customer, session_type, checkin_id, checkin_date):
     """Create a new invoice or update existing monthly invoice for a customer"""
     try:
-        # Load QuickBooks token
-        token_data = load_token_from_file()
+        # ✅ FIXED: Use get_valid_token() which automatically refreshes if expired
+        # This replaces the old pattern of load_token_from_file() + is_token_valid()
+        # which would skip invoice creation instead of retrying after refresh
+        token_data = get_valid_token()
         if not token_data or not token_data.get('access_token'):
-            print("[QUICKBOOKS] Not connected to QuickBooks - skipping invoice creation")
-            return None
-        
-        if not is_token_valid(token_data):
-            print("[QUICKBOOKS] Token expired - skipping invoice creation")
+            print("[QUICKBOOKS] Not connected to QuickBooks or unable to refresh token - skipping invoice creation")
             return None
         
         realm_id = token_data.get('realm_id')
         access_token = token_data.get('access_token')
+        
+        print(f"[QUICKBOOKS] Token valid, proceeding with invoice creation...")
         
         print(f"[QUICKBOOKS] Processing invoice for customer: {customer.firstName} {customer.lastName}")
         
