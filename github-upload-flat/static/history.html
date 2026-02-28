@@ -272,7 +272,8 @@
         function updateStats() {
             const total = allCheckins.length;
             const today = allCheckins.filter(c => {
-                const checkInDate = new Date(c.check_in_time);
+                // FIX: API returns "checkin_date", not "check_in_time"
+                const checkInDate = new Date(c.checkin_date);
                 const now = new Date();
                 return checkInDate.toDateString() === now.toDateString();
             }).length;
@@ -280,7 +281,7 @@
 
             document.getElementById('totalCheckins').textContent = total;
             document.getElementById('todayCheckins').textContent = today;
-            document.getElementById('totalRevenue').textContent = `$${revenue.toFixed(2)}`;
+            document.getElementById('totalRevenue').textContent = `$${(revenue || 0).toFixed(2)}`;
         }
 
         // Load services for filter
@@ -322,14 +323,16 @@
             
             filteredCheckins.forEach(checkin => {
                 const row = document.createElement('tr');
-                const date = new Date(checkin.check_in_time);
+                // FIX: API returns "checkin_date", not "check_in_time"
+                const date = new Date(checkin.checkin_date);
                 
                 row.innerHTML = `
                     <td>${date.toLocaleString()}</td>
                     <td><strong>${checkin.customer_name}</strong></td>
                     <td>${checkin.customer_email || 'N/A'}</td>
-                    <td><span class="badge success">${checkin.session_type_name}</span></td>
-                    <td><strong>$${checkin.price.toFixed(2)}</strong></td>
+                    <!-- FIX: API returns "session_type", not "session_type_name" -->
+                    <td><span class="badge success">${checkin.session_type || 'N/A'}</span></td>
+                    <td><strong>$${(checkin.price || 0).toFixed(2)}</strong></td>
                     <td>${checkin.notes || '-'}</td>
                 `;
                 
@@ -346,16 +349,16 @@
             filteredCheckins = allCheckins.filter(checkin => {
                 // Search filter
                 const matchesSearch = !searchTerm || 
-                    checkin.customer_name.toLowerCase().includes(searchTerm) ||
+                    (checkin.customer_name && checkin.customer_name.toLowerCase().includes(searchTerm)) ||
                     (checkin.customer_email && checkin.customer_email.toLowerCase().includes(searchTerm));
                 
-                // Date filter
+                // FIX: API returns "checkin_date", not "check_in_time"
                 const matchesDate = !dateFilter || 
-                    new Date(checkin.check_in_time).toISOString().split('T')[0] === dateFilter;
+                    new Date(checkin.checkin_date).toISOString().split('T')[0] === dateFilter;
                 
-                // Service filter
+                // FIX: API returns "session_type", not "session_type_name"
                 const matchesService = !serviceFilter || 
-                    checkin.session_type_name === serviceFilter;
+                    checkin.session_type === serviceFilter;
                 
                 return matchesSearch && matchesDate && matchesService;
             });
