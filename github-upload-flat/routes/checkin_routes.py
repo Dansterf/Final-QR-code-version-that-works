@@ -522,6 +522,10 @@ def get_checkins():
         for checkin in checkins:
             customer = Customer.query.get(checkin.customer_id)
             
+            # Find the session type to get the price
+            session_type = SessionType.query.filter_by(name=checkin.session_type).first()
+            price = session_type.price if session_type else 0.0
+            
             result.append({
                 "id": checkin.id,
                 "customer_id": checkin.customer_id,
@@ -529,7 +533,8 @@ def get_checkins():
                 "session_type": checkin.session_type,  # session_type is stored as string
                 "checkin_date": checkin.check_in_time.isoformat(),
                 "notes": checkin.notes,
-                "qb_invoice_id": checkin.qb_invoice_id
+                "qb_invoice_id": checkin.qb_invoice_id,
+                "price": float(price)  # Add price for frontend display
             })
         
         return jsonify(result), 200
