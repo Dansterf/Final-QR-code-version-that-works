@@ -530,6 +530,7 @@ def get_checkins():
                 "id": checkin.id,
                 "customer_id": checkin.customer_id,
                 "customer_name": f"{customer.firstName} {customer.lastName}" if customer else "Unknown",
+                "customer_email": customer.email if customer else None,
                 "session_type": checkin.session_type,  # session_type is stored as string
                 "checkin_date": checkin.check_in_time.isoformat(),
                 "notes": checkin.notes,
